@@ -9,6 +9,8 @@
   <link rel="stylesheet" href="src/ui/base.css">
   <link rel="stylesheet" href="src/ui/diagnostic.css">
   <link rel="stylesheet" href="src/ui/islands.css">
+  <link rel="stylesheet" href="src/ui/phonetics.css">
+  <link rel="stylesheet" href="src/ui/listening.css">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/svg+xml" href="icon.svg">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -35,13 +37,41 @@
       </div>
       <div class="card stage0-cta" id="diagnostic-callout"><div class="cardhead"><div><p class="eyebrow">VOX Speak 3.0 · Evaluación inicial</p><h2>Descubre tu punto de partida</h2><p class="muted">22 tareas: preguntas inesperadas, recuperación de frases y respuestas orales. Sin nota B2 inventada.</p></div><span class="pill">30–40 min</span></div><div class="row" style="margin-top:14px"><button class="btn primary" data-go="diagnostic" id="home-diagnostic-cta">Iniciar diagnóstico →</button><span class="tiny" id="diagnostic-home-status">Disponible cuando quieras</span></div></div>
     </section>
-    <section class="screen" id="listen" aria-label="Listening">
-      <p class="eyebrow">01 / Comprensión auditiva</p><h1>Entiende antes<br>de <span class="gradient">responder.</span></h1><p class="lead">Escucha una pregunta en inglés y selecciona qué significa. El texto permanece oculto hasta que contestes.</p>
-      <div class="card"><div class="cardhead"><div><span class="question-counter" id="listen-count">Pregunta 1</span><h2 style="margin-top:9px">¿Qué te preguntaron?</h2></div><span class="pill">A2 → B1/B2</span></div><div class="fieldrow"><label for="listen-rate">Velocidad</label><select id="listen-rate" class="select"><option value="0.8">0.8× Lenta</option><option value="0.95" selected>0.95× Natural pausada</option><option value="1.1">1.1× Normal rápida</option></select></div><button class="btn violet full" id="play-listen">🔊 Reproducir pregunta (sin texto)</button><p class="hint">Escúchala máximo dos veces antes de elegir, como si estuvieras en una entrevista real.</p><div class="options" id="listen-options"></div><div id="listen-result" class="feedback hidden" aria-live="polite"></div><button class="btn ghost full hidden" id="next-listen">Siguiente pregunta →</button></div>
+    <section class="screen" id="listen" aria-label="Listening impredecible">
+      <p class="eyebrow">01 / Escucha activa · Nivel progresivo</p><h1>Entiende preguntas<br><span class="gradient">que no esperabas.</span></h1>
+      <p class="lead">60 preguntas en tres formulaciones por intención. Primero escucha sin texto; después elige qué te están preguntando. No necesitas reconocimiento de voz.</p>
+      <div class="card" aria-label="Entrenamiento de listening nuevo">
+        <div class="cardhead"><div><span class="question-counter" id="listen-count">Pregunta nueva</span><h2 style="margin-top:9px">¿Qué te preguntaron?</h2></div><span class="pill">A2 → B1 · Práctica</span></div>
+        <p class="muted-small listen-topic" id="listen-topic"></p>
+        <div class="fieldrow"><label for="listen-mode">Contexto</label><select id="listen-mode" class="select"><option value="mixed">Mixto · 60 % profesional / 40 % cotidiano</option><option value="professional">Entrevistas, B2B y fintech</option><option value="general">Inglés cotidiano</option></select></div>
+        <div class="fieldrow"><label for="listen-rate">Velocidad</label><select id="listen-rate" class="select"><option value="0.8">0.8× Pausada</option><option value="0.95" selected>0.95× Natural pausada</option><option value="1.1">1.1× Más rápida</option></select></div>
+        <button class="btn violet full" type="button" id="play-listen">🔊 Escuchar pregunta (sin texto)</button>
+        <p id="listen-status" class="muted-small" aria-live="polite">Escucha antes de responder.</p>
+        <p class="hint">Intenta comprenderla en una o dos escuchas. Repetir está permitido, sin penalización.</p>
+        <div class="options" id="listen-options"></div>
+        <button type="button" id="listen-reveal" class="btn small ghost">👁 No pude escuchar: ver texto sin puntuar</button>
+        <div id="listen-result" class="feedback hidden" aria-live="polite"></div>
+        <button type="button" class="btn ghost full hidden" id="next-listen">Siguiente pregunta nueva →</button>
+        <div class="listen-summary" id="listen-summary" aria-live="polite">Historial local de comprensión</div>
+      </div>
+      <p class="muted-small">La voz la sintetiza tu navegador; puede variar entre teléfonos y no es una grabación humana certificada. Las etiquetas A2/B1 son orientativas, no una evaluación CEFR.</p>
     </section>
     <section class="screen" id="pronounce" aria-label="Pronunciación">
       <p class="eyebrow">02 / Pronunciación</p><h1>Que te entiendan<br><span class="gradient">a la primera.</span></h1><p class="lead">Escucha una frase, repítela y compara tu transcripción con el objetivo. Sin evaluaciones inventadas de fonemas.</p>
-      <div class="card"><div class="cardhead"><span id="pron-category" class="pill">Business English</span><span class="question-counter" id="pron-count">Frase 1</span></div><p class="quote" id="target-phrase"></p><p id="phrase-translation" class="muted-small"></p><div class="fieldrow"><label for="pron-rate">Velocidad modelo</label><select class="select" id="pron-rate"><option value="0.76">Lenta</option><option value="0.93" selected>Natural pausada</option><option value="1.08">Rápida</option></select></div><div class="controls"><button class="btn violet" id="play-pron">🔊 Escuchar</button><button class="btn primary" id="record-pron">🎤 Repetir</button></div><div id="pron-audio-playback" class="playback" aria-live="polite"></div><p id="pron-status" class="muted-small" aria-live="polite">Pulsa “Repetir” y habla en inglés.</p><div class="resultbox hidden" id="pron-feedback" aria-live="polite"></div><p class="hint" id="phrase-tip"></p><button class="btn ghost full" id="next-pron">Otra frase →</button></div>
+      <div class="card"><div class="cardhead"><span id="pron-category" class="pill">Business English</span><span class="question-counter" id="pron-count">Frase 1</span></div><p class="quote" id="target-phrase"></p><p id="phrase-translation" class="muted-small"></p><div class="fieldrow"><label for="pron-rate">Velocidad modelo</label><select class="select" id="pron-rate"><option value="0.76">Lenta</option><option value="0.93" selected>Natural pausada</option><option value="1.08">Rápida</option></select></div><div class="controls"><button class="btn violet" id="play-pron">🔊 Escuchar</button><button class="btn primary" id="record-pron">🎤 Repetir</button></div><div id="pron-audio-playback" class="playback" aria-live="polite"></div><p id="pron-status" class="muted-small" aria-live="polite">Pulsa “Repetir” y habla en inglés.</p><div class="resultbox hidden" id="pron-feedback" aria-live="polite"></div><p class="hint" id="phrase-tip"></p>
+      <div class="card phonetic-lab" aria-label="Análisis fonético experimental">
+        <span class="phonetic-badge">EXPERIMENTAL · Q4 · IPA LOCAL</span>
+        <h3>Explorador de sonidos</h3>
+        <p class="muted-small phonetic-note">Una función opcional para observar qué fonemas detecta el modelo. <strong>No evalúa tu pronunciación</strong> ni te asigna una nota. Evita usarla para juzgar si hablaste bien o mal.</p>
+        <div class="controls"><button class="btn ghost" id="phonetic-record" type="button">🎙 Grabar para IPA</button><button class="btn primary" id="phonetic-analyze" type="button" disabled>🧠 Analizar fonemas</button></div>
+        <div id="phonetic-playback" class="playback" aria-live="polite"></div>
+        <p id="phonetic-status" class="muted-small" role="status" aria-live="polite">Graba la frase actual. El modelo no se descargará hasta que pulses analizar.</p>
+        <progress id="phonetic-progress" max="100" value="0" hidden aria-label="Progreso de descarga del motor fonético"></progress>
+        <div id="phonetic-result" class="phonetic-result" aria-live="polite" hidden></div>
+        <p id="phonetic-metrics" class="muted-small"></p>
+        <p class="muted-small">Primera descarga: aproximadamente 90 MB, más archivos adicionales. Se necesita conexión; el análisis posterior se ejecuta en el dispositivo. No se guarda tu voz ni se envía a Azure.</p>
+      </div>
+      <button class="btn ghost full" id="next-pron">Otra frase →</button></div>
       <div class="card soft"><h3>¿Tienes una frase específica?</h3><p class="muted-small">Puedes practicar frases de tu hoja de vida o de una oferta laboral.</p><input id="custom-phrase" class="textinput" aria-label="Tu frase en inglés" maxlength="180" placeholder="Ej. I exceeded my sales targets"><button id="use-custom" class="btn small ghost" style="margin-top:10px">Practicar mi frase</button></div>
     </section>
     <section class="screen" id="interview" aria-label="Entrevistas">
@@ -95,6 +125,8 @@
   <script src="src/data/islands-data.js"></script>
   <script src="src/legacy/islands.js"></script>
   <script type="module" src="src/core/app.js"></script>
+  <script type="module" src="src/phonetics/pronunciation-lab.js"></script>
+  <script type="module" src="src/listening/listening-lab.js"></script>
   <script>if ("serviceWorker" in navigator) window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));</script>
 </body>
 </html>

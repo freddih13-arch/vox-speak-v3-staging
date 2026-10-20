@@ -101,3 +101,43 @@ Pruebas: `node --test tests/core.test.js`, `python tests/browser_check.py` y `py
 Se agregó Diagnóstico del reconocimiento en Inicio. Prueba el Web Speech API sin grabación paralela y muestra el código exacto de error, con informe técnico copiable sin audio ni transcripción. El control «Modo compatible» evita `MediaRecorder` en el mismo ejercicio si el reconocimiento solo funciona; la grabación de voz sigue disponible mediante su botón dedicado. Preferencia limitada al entorno staging y separada de claves v2. Si Chrome devuelve `network` o `service-not-allowed`, no existe una corrección garantizada por JS del lado del navegador: para verdadero reconocimiento independiente haría falta integrar un proveedor adicional.
 
 El audio grabado no se incorpora al informe técnico ni se persiste en servidor. No se asigna ninguna puntuación si falta transcripción.
+
+
+## VOX 3.0: explorador de fonemas Q4 (rama de desarrollo)
+
+Rama propuesta: `feature/phonetic-q4-experimental`. **NO desplegar ni fusionar con `main` hasta revisión**.
+Esta integración reusa grabación `VoxVoice` sin reconocimiento Web Speech, convierte el audio a mono/16kHz
+y ejecuta ONNX LJSpeech Gruut Q4 en Web Worker **únicamente al solicitar análisis**.
+Muestra IPA bruto y tiempos, no da nota, correcciones definitivas, histograma de errores ni SRS.
+Audio y resultado quedan en memoria temporal; no se añaden claves a localStorage.
+Motor reproducible observado en Android en pruebas con eSpeak y dos WAV LibriSpeech
+CC BY 4.0, pero las tres grabaciones del usuario dieron IPA poco consistente.
+La precisión fonética en aprendices y acentos diversos NO ha sido validada.
+
+### Pendiente (no bloqueante para conservar módulo experimental)
+- Comparativa del micrófono con y sin procesado / control de ruido (aplazada a petición del usuario).
+- Dataset de distintas voces y acentos con referencias IPA; calibración y validación antes de dar feedback correctivo.
+- No incorporar Azure BYOK, SRS, retelling ni juicios fonéticos hasta próxima autorización.
+
+**Despliegue:** GitHub Pages sirve la rama `main` y este cambio vive solo en la rama de desarrollo.
+No hay enlace de staging publicado para esta rama. El laboratorio independiente permanece disponible en
+`https://freddih13-arch.github.io/vox-speak-v3-phoneme-lab/`.
+
+
+## VOX 3.0 — Listening impredecible v1 (`feature/listening-unpredictable-v1`)
+
+Módulo nuevo en la pestaña Listening, integrado **sin tocar `main`** ni `vox-speak-free`:
+- 60 formulaciones de preguntas redactadas y revisadas a mano: 36 profesionales (entrevista/ventas/fintech) y 24 cotidianas.
+- Modo mixto distribuye cada bloque de 10 preguntas en 6 profesionales y 4 cotidianas (orden aleatorio); también tiene filtros de dominio.
+- No repite una pregunta del mismo dominio hasta agotar las disponibles. Las tres paráfrasis por intención entrenan transferencia, no memorización de una sola frase.
+- Escucha TTS usando Web Speech Synthesis y velocidad configurable. Pregunta inglesa oculta hasta responder o revelar deliberadamente.
+- Cuatro opciones de intención en español; tras responder muestra transcripción, explicación breve y respuesta modelo en inglés para escuchar.
+- Sin SpeechRecognition ni IA de evaluación. Botón para revelar sin nota cuando no se oye la pregunta.
+- Historial específico en `vox_stage0_preview__listening_unpredictable_v1` (no modifica claves de producción ni diagnóstico).
+- Al responder, actualiza contadores legacy de listening **una única vez**, sin mezclar precisión fonética.
+- Nivel A2/B1 solo orientativo; no diagnostica CEFR y las voces TTS no representan acentos humanos naturales.
+- Si localStorage tiene un objeto de escucha incompatible, se bloquea su sobrescritura y continúa en memoria.
+
+Pendiente: validar con Android real y revisar la naturalidad de voces por dispositivo; posible crecimiento gradual del banco, sin asumir que 60 preguntas equivalen a contenido infinito.
+
+El módulo fonético Q4 y su tarea de diagnóstico del micrófono aplazada permanecen **sin cambios**.
