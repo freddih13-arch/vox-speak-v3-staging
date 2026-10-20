@@ -1,0 +1,9 @@
+/* VOX Speak 3 — unexpected-question listening, isolated from phonetic scores */
+.listen-topic{margin:14px 0 4px;color:var(--cyan)}
+#listen .options{margin:16px 0 12px}
+#listen-reveal{margin:4px 0 10px;width:100%;text-align:center}
+#listen .listen-summary{border-top:1px solid var(--border);padding-top:14px;margin-top:20px;font-size:.86rem;color:var(--muted)}
+#listen-result p{overflow-wrap:anywhere;margin:.7rem 0}
+#listen .fieldrow select{flex:1;min-width:180px;max-width:100%}
+#listen-options button:disabled{opacity:.68}
+#listen-options button.correct:disabled,#listen-options button.incorrect:disabled{opacity:1}

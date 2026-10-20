@@ -34,7 +34,7 @@ test('navigation and sentence changes cancel transient analyses and respect data
   assert.match(panel,/vox:tab-change/);
   assert.match(panel,/window\.VoxVoice\?\.clearPlayback/);
   assert.match(read('src/core/storage.js'),/vox_stage0_preview__/);
-  assert.match(sw,/vox-v3-stage0-phonetics-q4-experimental/);
+  assert.match(sw,/vox-v3-stage0-listening-unpredictable-v1/);
   for(const file of ['pronunciation-lab.js','phoneme-worker.js','phonemes-local.js','audio-processor.js','ctc-decode.js','vocab-gruut.js']){
     assert.match(sw,new RegExp(file.replaceAll('.','\\.')));
   }
