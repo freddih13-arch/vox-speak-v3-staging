@@ -78,3 +78,20 @@ La prueba de navegador usa HTML en memoria y un empaquetado temporal de módulos
 ## Siguiente decisión
 
 Revisar la UI, pruebas y esquema de datos. **No mezclar en `main` hasta aprobación explícita del usuario.** Después de aprobar etapa 0 se podrá crear una rama de prueba con HTTPS, validar micrófono Android y diseñar el módulo de pronunciación real (etapa 1), manteniendo costo obligatorio de 0 COP.
+
+## Staging Android: corrección de micrófono (20-10-2026)
+
+Esta carpeta corresponde al proyecto **de pruebas HTTPS**, independiente de la web VOX Speak 2.1. Después del primer ensayo en Android se identificó que el botón "Detener" llamaba a `SpeechRecognition.abort()` y descartaba posibles transcripciones. También separaba el reconocimiento y la grabación reproducible.
+
+La corrección añade `src/core/voice-capture.js`, que administra dos procesos distintos: `MediaRecorder` para reproducción local y `SpeechRecognition` para una transcripción aproximada cuando el navegador la permite. **Detener y evaluar** llama a `stop()`; si falla el reconocimiento, conserva el audio (cuando MediaRecorder funciona), muestra el motivo y no crea puntuaciones falsas. El audio no se sube por el código de VOX; el servicio del navegador podría recibirlo para reconocer palabras. La grabación es temporal y se elimina al cambiar de actividad o grabar de nuevo.
+
+### Probar en Android
+
+1. En Chrome abre `https://freddih13-arch.github.io/vox-speak-v3-staging/` y actualiza la página si hay una copia antigua.
+2. En **Hablar**, pulsa **Repetir**, di una frase y pulsa **Detener y evaluar** (no cierres la pestaña antes de terminar).
+3. Comprueba que aparece un reproductor de audio. Si Chrome logró transcribir, también muestra las palabras reconocidas y la comparación con el modelo.
+4. Si no transcribe, usa el reproductor para confirmar que sí se grabó tu voz; el mensaje mostrará el error del motor de reconocimiento.
+5. En **Islas**, el botón **Hablar** también captura audio, y **Grabar mi voz** funciona aun sin transcripción.
+6. En **Diagnóstico** puedes escuchar tu grabación de pronunciación *antes* de guardar la transcripción; en Speaking puedes escucharla antes de autoevaluarte.
+
+Pruebas: `node --test tests/core.test.js`, `python tests/browser_check.py` y `python tests/voice_browser_check.py`. Las pruebas de voz usan dispositivos falsos inyectados en Chromium; sigue siendo indispensable la prueba de micro y red real en Android.

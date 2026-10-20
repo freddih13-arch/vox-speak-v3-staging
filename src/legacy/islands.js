@@ -44,9 +44,9 @@ function renderList(){
  });if(!data.length){const p=document.createElement('p');p.className='muted';p.textContent='No hay islas con ese término.';grid.append(p)}
 }
 function openIsland(id){const x=catalog().find(c=>c.id===id);if(!x)return;islandId=id;phraseIndex=Math.max(0,x.phrases.findIndex(p=>records(p.id).due<=isoDate()&&!records(p.id).mastered));revealed=false;mode='shadow';$('island-list').classList.add('hide');$('island-detail').classList.add('visible');renderPhrase();window.scrollTo({top:0,behavior:'instant'});}
-function closeIsland(){try{window.stopListening?.()}catch(_){}stopAudio();cleanupPlayback();speechSynthesis?.cancel?.();islandId=null;$('island-list').classList.remove('hide');$('island-detail').classList.remove('visible');renderList();window.scrollTo({top:0,behavior:'instant'})}
+function closeIsland(){window.VoxVoice?.cancel();window.VoxVoice?.clearPlayback('audio-playback');stopAudio();cleanupPlayback();speechSynthesis?.cancel?.();islandId=null;$('island-list').classList.remove('hide');$('island-detail').classList.remove('visible');renderList();window.scrollTo({top:0,behavior:'instant'})}
 function renderPhrase(){const x=island(),p=phrase();if(!x||!p)return;
- cleanupPlayback();stopAudio();lastSpoken='';revealed=false;
+ window.VoxVoice?.cancel();window.VoxVoice?.clearPlayback('audio-playback');cleanupPlayback();stopAudio();lastSpoken='';revealed=false;
  text('island-detail-name',x.name);text('island-detail-sub',`${x.description} · ${x.level||'Personal'}`);text('island-detail-emoji',x.emoji);$('is-delete-custom').hidden=!x.id.startsWith('created-');text('is-phrase-no',`Frase ${phraseIndex+1}/${x.phrases.length}`);text('is-hint',p.hint||'Escucha y repite la frase hasta poder usarla en contexto.');
  const c=records(p.id);text('is-cardstats',`${c.attempts} intentos · mejor ${c.best||0}% · ${c.mastered?'✓ dominada':'en aprendizaje'}`);
  $('is-learned').textContent=c.mastered?'✓ Dominada — quitar marca':'☆ Marcar dominada';$('is-result').hidden=true;$('is-status').textContent='Elige una forma de practicar. No se requiere cuenta ni pago.';
@@ -76,7 +76,7 @@ function setResult(answer,fromVoice=true){const p=phrase();if(!p)return;const v=
  text('is-cardstats',`${records(p.id).attempts} intentos · mejor ${records(p.id).best}% · ${records(p.id).mastered?'✓ dominada':'en aprendizaje'}`);
  if(fromVoice)renderPhraseNav();
 }
-function onMic(){if(!phrase())return;window.speechSynthesis?.cancel?.();stopAudio();const btn=$('is-record');const target=phrase().id;window.voiceInput(btn,$('is-status'),spoken=>{if(phrase()?.id===target)setResult(spoken,true)})}
+function onMic(){if(!phrase())return;window.speechSynthesis?.cancel?.();stopAudio();const target=phrase().id;window.VoxVoice.toggle({button:'is-record',status:'is-status',playback:'audio-playback',recognize:true,lang:db.dialect,onText:spoken=>{if(phrase()?.id===target)setResult(spoken,true)}})}
 function renderProgressExtras(){const m=metric();renderJourney();text('island-progress-summary',`${m.learned} de ${phraseCount()} frases dominadas · ${m.due} para repasar · ${m.attempts} prácticas orales`);text('island-progress-banner',`${m.learned} frases dominadas · ${m.attempts} prácticas orales`);const box=$('island-progress-details');box.replaceChildren();const recent=db.history.slice(-8).reverse();if(!recent.length){const p=document.createElement('p');p.className='muted';p.textContent='Practica tu primera isla: aquí verás tus últimos intentos.';box.append(p)}else recent.forEach(r=>{const p=document.createElement('div');p.className='task';const item=catalog().flatMap(x=>x.phrases).find(x=>x.id===r.id);p.textContent=`${r.score}% · ${item?.en||r.id} · ${new Date(r.date).toLocaleDateString('es-CO')}`;box.append(p)})}
 function renderJourney(){
  const box=$('journey-timeline');if(!box)return;box.replaceChildren();
@@ -100,11 +100,7 @@ function init(){if(!$('island-grid'))return;
  $('is-create-toggle').addEventListener('click',()=>{$('is-create-form').classList.toggle('open')});$('is-create-submit').addEventListener('click',createIsland);
  $('journey-save').addEventListener('click',saveJourney);$('journey-export').addEventListener('click',exportJourney);$('is-export').addEventListener('click',exportBackup);$('island-import').addEventListener('change',e=>importBackup(e.target.files?.[0]));
  $('is-dialect').value=db.dialect;$('is-dialect').addEventListener('change',e=>{db.dialect=e.target.value;save()});$('is-speed').value=String(db.speed);$('is-speed').addEventListener('change',e=>{db.speed=+e.target.value;save()});
- $('is-record-audio').addEventListener('click',async()=>{if(recording){try{audioRecorder.stop()}catch(_){}recording=false;$('is-record-audio').textContent='⏺ Grabar mi voz';return}
- if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){status('La grabación no está disponible en este navegador.');return}
- try{window.speechSynthesis?.cancel?.();cleanupPlayback();audioStream=await navigator.mediaDevices.getUserMedia({audio:true});audioChunks=[];audioRecorder=new MediaRecorder(audioStream);
-  audioRecorder.ondataavailable=e=>{if(e.data.size)audioChunks.push(e.data)};audioRecorder.onstop=()=>{const blob=new Blob(audioChunks,{type:audioRecorder.mimeType||'audio/webm'});if(blob.size){audioUrl=URL.createObjectURL(blob);const el=document.createElement('audio');el.controls=true;el.src=audioUrl;$('audio-playback').replaceChildren(el)}audioStream?.getTracks().forEach(t=>t.stop());audioStream=null;recording=false;$('is-record-audio').textContent='⏺ Grabar mi voz';status('Grabación disponible para escucharte (no se sube ni se almacena).')};audioRecorder.start();recording=true;$('is-record-audio').textContent='■ Detener grabación';status('Grabando tu voz. Pulsa detener al terminar.')
- }catch(e){status('No se pudo abrir el micrófono. Comprueba permisos y cierra otras grabaciones.')}});
+ $('is-record-audio').addEventListener('click',()=>{window.VoxVoice.toggle({button:'is-record-audio',status:'is-status',playback:'audio-playback',recognize:false,lang:db.dialect})});
  $('is-delete-custom').addEventListener('click',()=>{const x=island();if(!x?.id?.startsWith('created-')){status('Las islas originales no se eliminan.');return}if(!confirm('¿Eliminar esta isla personalizada?'))return;db.custom=db.custom.filter(y=>y.id!==x.id);save();closeIsland()});
  const oldProgress=window.renderProgress;window.renderProgress=function(){if(typeof oldProgress==='function')oldProgress();renderProgressExtras()};
  renderList();renderProgressExtras();

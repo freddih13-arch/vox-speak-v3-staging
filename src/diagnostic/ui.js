@@ -12,6 +12,7 @@ export function mountDiagnostic(initialState,storage=localStorage){
  const status=(value)=>{const node=byId('diag-status');if(node)node.textContent=value};
  const updateHome=()=>{const el=byId('diagnostic-home-status');if(!el)return;const d=state.diagnostic;el.textContent=d.status==='completed'?'✓ Diagnóstico completado':d.status==='in_progress'?`${Object.keys(d.answers).length}/${QUESTIONS.length} tareas · continuar`:'Tu primer diagnóstico está listo';const btn=byId('home-diagnostic-cta');if(btn)btn.textContent=d.status==='completed'?'Ver mi diagnóstico →':d.status==='in_progress'?'Continuar diagnóstico →':'Iniciar diagnóstico →';};
  function cleanAudio(){
+  window.VoxVoice?.cancel();window.VoxVoice?.clearPlayback('diag-pron-audio-playback');window.VoxVoice?.clearPlayback('diag-speak-audio-player');
   if(timer){clearInterval(timer);timer=null}
   if(recognition){try{recognition.abort()}catch(_){ }recognition=null}
   if(recorder?.state==='recording'){try{recorder.stop()}catch(_){}}
@@ -54,36 +55,24 @@ export function mountDiagnostic(initialState,storage=localStorage){
   };
  }
  function pronunciation(q){
-  frame(q);byId('diag-content').innerHTML=`<p class="eyebrow">03 · Inteligibilidad aproximada</p><h2>Escucha y repite</h2><p class="diag-question" lang="en">${esc(q.en)}</p><p class="muted-small">${esc(q.hint)}</p><div class="row"><button class="btn ghost" id="diag-pron-play">🔊 Escuchar modelo</button><button class="btn primary" id="diag-pron-mic">🎙 Repetir</button></div><p class="fineprint">Web Speech compara la transcripción. No analiza fonemas, entonación ni acento.</p>`;
+  frame(q);byId('diag-content').innerHTML=`<p class="eyebrow">03 · Inteligibilidad aproximada</p><h2>Escucha y repite</h2><p class="diag-question" lang="en">${esc(q.en)}</p><p class="muted-small">${esc(q.hint)}</p><div class="row"><button class="btn ghost" id="diag-pron-play">🔊 Escuchar modelo</button><button class="btn primary" id="diag-pron-mic">🎙 Repetir</button></div><div id="diag-pron-audio-playback" class="playback" aria-live="polite"></div><p id="diag-pron-text" class="muted-small" aria-live="polite">La grabación aparecerá aquí aunque Chrome no consiga transcribirla.</p><button class="btn primary" id="diag-pron-confirm" hidden>Guardar palabras reconocidas →</button><p class="fineprint">La grabación queda local; el navegador puede procesar el audio en un servicio externo para transcribirlo. Sin transcripción no asignamos nota ni un falso cero.</p>`;
   byId('diag-pron-play').onclick=()=>speak(q.en);
-  const button=byId('diag-pron-mic');button.onclick=()=>{
-   const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;if(!Recognition){status('El navegador no admite reconocimiento. Puedes omitir esta tarea.');return}
-   if(recognition){recognition.abort();return}
-   speechSynthesis?.cancel?.();const r=new Recognition();recognition=r;r.lang='en-US';r.interimResults=false;r.continuous=false;button.disabled=true;button.textContent='🎙 Escuchando…';status('Habla cuando estés listo.');
-   r.onresult=e=>{if(recognition!==r)return;const transcript=e.results?.[0]?.[0]?.transcript||'';recognition=null;button.disabled=false;submit(q,{transcript});};
-   r.onerror=e=>{status('No se reconoció tu voz ('+(e.error||'desconocido')+'). Intenta de nuevo u omite esta tarea.')};
-   r.onend=()=>{if(recognition===r){recognition=null;button.disabled=false;button.textContent='🎙 Reintentar';}};
-   try{r.start()}catch(_){recognition=null;button.disabled=false;status('No se pudo iniciar el micrófono. Permite el acceso o salta la tarea.')}
-  }
+  let transcript='';
+  byId('diag-pron-mic').onclick=()=>window.VoxVoice.toggle({button:'diag-pron-mic',status:'diag-status',playback:'diag-pron-audio-playback',recognize:true,lang:'en-US',onText:value=>{
+    transcript=value;
+    byId('diag-pron-text').textContent=`Chrome reconoció: “${value}”. Escucha tu grabación antes de guardar.`;
+    byId('diag-pron-confirm').hidden=false;
+  }});
+  byId('diag-pron-confirm').onclick=()=>{if(transcript)submit(q,{transcript})};
  }
  function speaking(q){
-  frame(q);byId('diag-content').innerHTML=`<p class="eyebrow">04 · Respuesta espontánea</p><h2>Contesta hablando en inglés</h2><p class="diag-question" lang="en">${esc(q.en)}</p><p class="muted-small">${esc(q.es)}</p><p>Graba una respuesta de aproximadamente 30–60 segundos. Después escúchate y valora tu desempeño. El audio no se guarda ni sale del dispositivo.</p><div class="row"><button class="btn ghost" id="diag-speak-play">🔊 Escuchar pregunta</button><button class="btn primary" id="diag-speak-record">⏺ Iniciar grabación</button></div><p class="muted-small" id="diag-audio-label"></p><div id="diag-audio-player"></div><div id="diag-self-rating"></div>`;
+  frame(q);byId('diag-content').innerHTML=`<p class="eyebrow">04 · Respuesta espontánea</p><h2>Contesta hablando en inglés</h2><p class="diag-question" lang="en">${esc(q.en)}</p><p class="muted-small">${esc(q.es)}</p><p>Graba una respuesta de 30–60 segundos. Después escúchate y valora tu desempeño. El audio es temporal y no se sube a nuestros servidores.</p><div class="row"><button class="btn ghost" id="diag-speak-play">🔊 Escuchar pregunta</button><button class="btn primary" id="diag-speak-record">⏺ Grabar respuesta</button></div><div id="diag-speak-audio-player" class="playback"></div><div id="diag-self-rating"></div>`;
   byId('diag-speak-play').onclick=()=>speak(q.en);
-  const btn=byId('diag-speak-record');btn.onclick=async()=>{
-   if(recorder?.state==='recording'){recorder.stop();return}
-   if(audioURL){URL.revokeObjectURL(audioURL);audioURL=null;byId('diag-audio-player').replaceChildren();byId('diag-self-rating').replaceChildren()}
-   if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){status('Tu dispositivo no ofrece MediaRecorder. Puedes omitir la tarea.');return}
-   let localStream=null;try{speechSynthesis?.cancel?.();localStream=await navigator.mediaDevices.getUserMedia({audio:true});stream=localStream;const mime=MediaRecorder.isTypeSupported?.('audio/webm')?'audio/webm':undefined;
-    const r=new MediaRecorder(stream,mime?{mimeType:mime}:undefined);recorder=r;let chunks=[];r.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
-    r.onstop=()=>{if(recorder!==r)return;recordedSeconds=Math.max(1,Math.round((Date.now()-recordStart)/1000));if(timer)clearInterval(timer);timer=null;
-      const blob=new Blob(chunks,{type:r.mimeType||'audio/webm'});if(blob.size){audioURL=URL.createObjectURL(blob);const audio=document.createElement('audio');audio.controls=true;audio.src=audioURL;byId('diag-audio-player')?.replaceChildren(audio);byId('diag-self-rating').innerHTML=`<p>Escucha tu grabación y selecciona cómo te desenvolviste:</p>${chooseRating()}`;
-       byId('diag-self-rating').querySelectorAll('[data-rating]').forEach(button=>button.onclick=()=>submit(q,{rating:Number(button.dataset.rating),durationSeconds:recordedSeconds}));status('Grabación temporal lista. Escúchate y selecciona una autoevaluación.');}
-      else status('La grabación está vacía. Vuelve a intentarlo.');
-      stream?.getTracks().forEach(t=>t.stop());stream=null;btn.textContent='⏺ Volver a grabar';};
-    r.start();recordStart=Date.now();btn.textContent='■ Detener';status('Grabación en curso. Pulsa detener cuando termines.');
-    timer=setInterval(()=>{const elapsed=Math.round((Date.now()-recordStart)/1000);const label=byId('diag-audio-label');if(label)label.textContent=`Grabando ${elapsed} s · máximo recomendado 60 s`;if(elapsed>=90 && r.state==='recording')r.stop()},250);
-   }catch(_){localStream?.getTracks().forEach(t=>t.stop());stream=null;status('No se pudo acceder al micrófono. Revisa permisos o salta la tarea.')}
-  }
+  byId('diag-speak-record').onclick=()=>window.VoxVoice.toggle({button:'diag-speak-record',status:'diag-status',playback:'diag-speak-audio-player',recognize:false,onAudio:({durationSeconds})=>{
+    const panel=byId('diag-self-rating');if(!panel)return;
+    panel.innerHTML=`<p>Reproduce tu voz y elige una autoevaluación. Grabación: ${durationSeconds} segundos.</p>${chooseRating()}`;
+    panel.querySelectorAll('[data-rating]').forEach(button=>button.onclick=()=>submit(q,{rating:Number(button.dataset.rating),durationSeconds}));
+  }});
  }
  function showDone(){const r=state.diagnostic.report;if(!r)return;
  const label=(n,total)=>total?`${n} de ${total}`:'Sin muestras';
