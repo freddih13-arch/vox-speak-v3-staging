@@ -1,0 +1,9 @@
+/* Q4 phonetics preview is explicitly descriptive, never an accent score. */
+.phonetic-lab{border:1px solid #496475;background:rgba(55,94,121,.11);margin-top:18px}
+.phonetic-badge{display:inline-flex;padding:3px 9px;border-radius:999px;font:700 11px/1.5 system-ui;background:#1d4b4f;color:#b2ffea;letter-spacing:.02em}
+.phonetic-lab h3{margin:9px 0}
+.phonetic-lab .controls{margin-top:12px}
+.phonetic-lab progress{width:100%;height:9px;margin:10px 0;accent-color:#62dcc6}
+.phonetic-result{margin:10px 0;padding:14px;border-radius:12px;background:rgba(10,24,39,.50);overflow-wrap:anywhere}
+.phonetic-ipa{font-size:1.15rem;line-height:1.7;font-weight:650;overflow-wrap:anywhere;white-space:pre-wrap}
+.phonetic-note{font-size:.9em;line-height:1.5}

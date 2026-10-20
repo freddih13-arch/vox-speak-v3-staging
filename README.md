@@ -101,3 +101,24 @@ Pruebas: `node --test tests/core.test.js`, `python tests/browser_check.py` y `py
 Se agregó Diagnóstico del reconocimiento en Inicio. Prueba el Web Speech API sin grabación paralela y muestra el código exacto de error, con informe técnico copiable sin audio ni transcripción. El control «Modo compatible» evita `MediaRecorder` en el mismo ejercicio si el reconocimiento solo funciona; la grabación de voz sigue disponible mediante su botón dedicado. Preferencia limitada al entorno staging y separada de claves v2. Si Chrome devuelve `network` o `service-not-allowed`, no existe una corrección garantizada por JS del lado del navegador: para verdadero reconocimiento independiente haría falta integrar un proveedor adicional.
 
 El audio grabado no se incorpora al informe técnico ni se persiste en servidor. No se asigna ninguna puntuación si falta transcripción.
+
+
+## VOX 3.0: explorador de fonemas Q4 (rama de desarrollo)
+
+Rama propuesta: `feature/phonetic-q4-experimental`. **NO desplegar ni fusionar con `main` hasta revisión**.
+Esta integración reusa grabación `VoxVoice` sin reconocimiento Web Speech, convierte el audio a mono/16kHz
+y ejecuta ONNX LJSpeech Gruut Q4 en Web Worker **únicamente al solicitar análisis**.
+Muestra IPA bruto y tiempos, no da nota, correcciones definitivas, histograma de errores ni SRS.
+Audio y resultado quedan en memoria temporal; no se añaden claves a localStorage.
+Motor reproducible observado en Android en pruebas con eSpeak y dos WAV LibriSpeech
+CC BY 4.0, pero las tres grabaciones del usuario dieron IPA poco consistente.
+La precisión fonética en aprendices y acentos diversos NO ha sido validada.
+
+### Pendiente (no bloqueante para conservar módulo experimental)
+- Comparativa del micrófono con y sin procesado / control de ruido (aplazada a petición del usuario).
+- Dataset de distintas voces y acentos con referencias IPA; calibración y validación antes de dar feedback correctivo.
+- No incorporar Azure BYOK, SRS, retelling ni juicios fonéticos hasta próxima autorización.
+
+**Despliegue:** GitHub Pages sirve la rama `main` y este cambio vive solo en la rama de desarrollo.
+No hay enlace de staging publicado para esta rama. El laboratorio independiente permanece disponible en
+`https://freddih13-arch.github.io/vox-speak-v3-phoneme-lab/`.

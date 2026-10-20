@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="src/ui/base.css">
   <link rel="stylesheet" href="src/ui/diagnostic.css">
   <link rel="stylesheet" href="src/ui/islands.css">
+  <link rel="stylesheet" href="src/ui/phonetics.css">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/svg+xml" href="icon.svg">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -41,7 +42,20 @@
     </section>
     <section class="screen" id="pronounce" aria-label="Pronunciación">
       <p class="eyebrow">02 / Pronunciación</p><h1>Que te entiendan<br><span class="gradient">a la primera.</span></h1><p class="lead">Escucha una frase, repítela y compara tu transcripción con el objetivo. Sin evaluaciones inventadas de fonemas.</p>
-      <div class="card"><div class="cardhead"><span id="pron-category" class="pill">Business English</span><span class="question-counter" id="pron-count">Frase 1</span></div><p class="quote" id="target-phrase"></p><p id="phrase-translation" class="muted-small"></p><div class="fieldrow"><label for="pron-rate">Velocidad modelo</label><select class="select" id="pron-rate"><option value="0.76">Lenta</option><option value="0.93" selected>Natural pausada</option><option value="1.08">Rápida</option></select></div><div class="controls"><button class="btn violet" id="play-pron">🔊 Escuchar</button><button class="btn primary" id="record-pron">🎤 Repetir</button></div><div id="pron-audio-playback" class="playback" aria-live="polite"></div><p id="pron-status" class="muted-small" aria-live="polite">Pulsa “Repetir” y habla en inglés.</p><div class="resultbox hidden" id="pron-feedback" aria-live="polite"></div><p class="hint" id="phrase-tip"></p><button class="btn ghost full" id="next-pron">Otra frase →</button></div>
+      <div class="card"><div class="cardhead"><span id="pron-category" class="pill">Business English</span><span class="question-counter" id="pron-count">Frase 1</span></div><p class="quote" id="target-phrase"></p><p id="phrase-translation" class="muted-small"></p><div class="fieldrow"><label for="pron-rate">Velocidad modelo</label><select class="select" id="pron-rate"><option value="0.76">Lenta</option><option value="0.93" selected>Natural pausada</option><option value="1.08">Rápida</option></select></div><div class="controls"><button class="btn violet" id="play-pron">🔊 Escuchar</button><button class="btn primary" id="record-pron">🎤 Repetir</button></div><div id="pron-audio-playback" class="playback" aria-live="polite"></div><p id="pron-status" class="muted-small" aria-live="polite">Pulsa “Repetir” y habla en inglés.</p><div class="resultbox hidden" id="pron-feedback" aria-live="polite"></div><p class="hint" id="phrase-tip"></p>
+      <div class="card phonetic-lab" aria-label="Análisis fonético experimental">
+        <span class="phonetic-badge">EXPERIMENTAL · Q4 · IPA LOCAL</span>
+        <h3>Explorador de sonidos</h3>
+        <p class="muted-small phonetic-note">Una función opcional para observar qué fonemas detecta el modelo. <strong>No evalúa tu pronunciación</strong> ni te asigna una nota. Evita usarla para juzgar si hablaste bien o mal.</p>
+        <div class="controls"><button class="btn ghost" id="phonetic-record" type="button">🎙 Grabar para IPA</button><button class="btn primary" id="phonetic-analyze" type="button" disabled>🧠 Analizar fonemas</button></div>
+        <div id="phonetic-playback" class="playback" aria-live="polite"></div>
+        <p id="phonetic-status" class="muted-small" role="status" aria-live="polite">Graba la frase actual. El modelo no se descargará hasta que pulses analizar.</p>
+        <progress id="phonetic-progress" max="100" value="0" hidden aria-label="Progreso de descarga del motor fonético"></progress>
+        <div id="phonetic-result" class="phonetic-result" aria-live="polite" hidden></div>
+        <p id="phonetic-metrics" class="muted-small"></p>
+        <p class="muted-small">Primera descarga: aproximadamente 90 MB, más archivos adicionales. Se necesita conexión; el análisis posterior se ejecuta en el dispositivo. No se guarda tu voz ni se envía a Azure.</p>
+      </div>
+      <button class="btn ghost full" id="next-pron">Otra frase →</button></div>
       <div class="card soft"><h3>¿Tienes una frase específica?</h3><p class="muted-small">Puedes practicar frases de tu hoja de vida o de una oferta laboral.</p><input id="custom-phrase" class="textinput" aria-label="Tu frase en inglés" maxlength="180" placeholder="Ej. I exceeded my sales targets"><button id="use-custom" class="btn small ghost" style="margin-top:10px">Practicar mi frase</button></div>
     </section>
     <section class="screen" id="interview" aria-label="Entrevistas">
@@ -95,6 +109,7 @@
   <script src="src/data/islands-data.js"></script>
   <script src="src/legacy/islands.js"></script>
   <script type="module" src="src/core/app.js"></script>
+  <script type="module" src="src/phonetics/pronunciation-lab.js"></script>
   <script>if ("serviceWorker" in navigator) window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));</script>
 </body>
 </html>
