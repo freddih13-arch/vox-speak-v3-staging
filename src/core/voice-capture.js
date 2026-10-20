@@ -1,4 +1,4 @@
-/* VOX Speak · Android voice capture 0.1
+/* VOX Speak · Android voice capture 0.2
    MediaRecorder: local playback. SpeechRecognition: optional, potentially remote, word transcript only.
    Stopping recognition uses stop(), not abort(); abort is reserved for leaving the exercise. */
 (() => {
@@ -15,7 +15,10 @@
     'audio-capture':'El reconocimiento no consiguió utilizar el micrófono. Revisa si otra aplicación lo usa.',
     'language-not-supported':'El reconocimiento del idioma inglés no está disponible en el navegador.',
     'aborted':'El navegador interrumpió el reconocimiento.',
-    'unknown':'El reconocimiento finalizó sin transcripción.'
+    'unknown':'El reconocimiento finalizó sin transcripción.',
+    'unsupported':'Esta versión del navegador no dispone de SpeechRecognition.',
+    'no-result':'La sesión terminó sin devolver palabras.',
+    'timeout':'El servicio tardó demasiado en finalizar.'
   };
   const errText = e => ({NotAllowedError:'Permiso del micrófono denegado. Comprueba los permisos de Chrome.',NotFoundError:'No se encontró un micrófono.',NotReadableError:'El micrófono está siendo utilizado por otra aplicación.',SecurityError:'La página debe abrirse mediante HTTPS.',AbortError:'La captura del micrófono se interrumpió.'}[e?.name] || `Error de micrófono: ${e?.name || 'desconocido'}.`);
   const get = o => typeof o === 'string' ? document.getElementById(o) : o;
@@ -39,7 +42,7 @@
     if(active?.button===o.button){active.stop();return}
     cancel();
     if(o.playback)clearPlayback(o.playback);
-    const s={...o,buttonLabel:o.button.textContent,recording:false,stopping:false,speechDone:!o.recognize,speechStarted:false,recorderDone:false,transcript:'',speechError:'',recorderError:'',url:null,stream:null,recognition:null,recorder:null,chunks:[],startTime:0,timeout:null,cancelled:false,finished:false};
+    const s={...o,compatMode:!!(o.recognize && window.VoxSpeechDiagnostics?.compatibleMode?.()),buttonLabel:o.button.textContent,recording:false,stopping:false,speechDone:!o.recognize,speechStarted:false,recorderDone:false,transcript:'',speechError:'',recorderError:'',url:null,stream:null,recognition:null,recorder:null,chunks:[],startTime:0,timeout:null,cancelled:false,finished:false};
     s.isCurrent=()=>active===s && !s.cancelled;
     s.stop=()=>{
       if(!s.isCurrent()||s.stopping)return;
@@ -53,14 +56,15 @@
         try{s.recorder.stop()}catch(e){s.recorderDone=true;s.recorderError=errText(e)}
       }else if(!s.recorder) s.recorderDone=true;
       safeMsg(s,'Finalizando grabación y transcripción. Espera unos segundos…');
-      s.timeout=setTimeout(()=>{if(!s.isCurrent()||s.finished)return;s.speechDone=true;s.speechError||='network';finalize(s)},5500);
+      s.timeout=setTimeout(()=>{if(!s.isCurrent()||s.finished)return;s.speechDone=true;s.speechError||='timeout';finalize(s)},5500);
       finalize(s);
     };
     active=s;
     const start=async()=>{
       s.button.classList.add('recording');s.button.textContent='⌛ Activando micrófono…';
       safeMsg(s,'Pidiendo permiso al micrófono…');
-      if(navigator.mediaDevices?.getUserMedia && window.MediaRecorder){
+      if(s.compatMode){s.recorderDone=true}
+      else if(navigator.mediaDevices?.getUserMedia && window.MediaRecorder){
         try{
           const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}});
           if(!s.isCurrent()){stream.getTracks().forEach(t=>t.stop());return}
@@ -93,7 +97,7 @@
         try{
           const r=new Recognition();s.recognition=r;r.lang=s.lang||'en-US';r.interimResults=false;r.continuous=false;r.maxAlternatives=1;
           r.onresult=e=>{if(!s.isCurrent())return;const parts=[];for(let i=0;i<e.results.length;i++){const result=e.results[i];if(result[0]?.transcript)parts.push(result[0].transcript)}if(parts.length)s.transcript=parts.join(' ').trim()};
-          r.onerror=e=>{if(!s.isCurrent())return;s.speechError=e.error||'unknown';if(!s.stopping)safeMsg(s,MSG[s.speechError]||`Error del reconocimiento: ${s.speechError}`)};
+          r.onerror=e=>{if(!s.isCurrent())return;s.speechError=e.error||'unknown';if(!s.stopping)safeMsg(s,`⚠️ Código [${s.speechError}]: ${MSG[s.speechError]||'Fallo no identificado.'}`)};
           r.onend=()=>{if(!s.isCurrent())return;s.speechDone=true;if(!s.stopping)s.stop();else finalize(s)};
           r.start();s.speechStarted=true;
         }catch(e){s.speechError=e.name||'unknown';s.speechDone=true}
@@ -101,7 +105,7 @@
       if(!s.isCurrent())return;
       if(!s.recording&&!s.speechStarted){s.button.textContent=s.buttonLabel;s.button.classList.remove('recording');safeMsg(s,s.recorderError||'El reconocimiento y la grabación no están disponibles.');active=null;return}
       s.button.textContent='■ Detener y evaluar';s.button.disabled=false;
-      safeMsg(s,s.recorderError?`${s.recorderError} Habla para intentar transcripción.`:'🎙 Grabando. Habla y pulsa «Detener y evaluar»; después podrás escuchar tu voz.');
+      safeMsg(s,s.compatMode?'🔎 Modo compatible: reconocimiento sin grabación simultánea. Habla y pulsa «Detener y evaluar».':s.recorderError?`${s.recorderError} Habla para intentar transcripción.`:'🎙 Grabando. Habla y pulsa «Detener y evaluar»; después podrás escuchar tu voz.');
     };
     start().catch(e=>{if(s.isCurrent()){safeMsg(s,errText(e));resetButton(s);active=null}});
   }
@@ -114,8 +118,10 @@
       if(s.status)s.status.textContent=`Chrome reconoció: “${spoken}”. ${s.audioReady?'Puedes reproducir tu grabación abajo.':''}`;
       try{s.onText?.(spoken)}catch(error){if(s.status)s.status.textContent=`Audio listo. La evaluación falló: ${error.message}`}
     }else if(s.status){
-      const reason=s.speechError==='unsupported'?'Web Speech no está disponible':MSG[s.speechError]||MSG.unknown;
-      s.status.textContent=s.audioReady?`✅ Tu voz quedó grabada y puedes escucharla abajo. ⚠️ ${reason} No se asigna una nota de pronunciación sin transcripción.`:(s.recorderError||reason);
+      const code=s.speechError||'no-result';
+      const reason=MSG[code]||MSG.unknown;
+      const why=`⚠️ Reconocimiento [${code}]: ${reason} No se asigna puntuación sin transcripción. Abre «Diagnóstico del reconocimiento» en Inicio para enviar el código.`;
+      s.status.textContent=s.audioReady?`✅ Grabación disponible para reproducir. ${why}`:(s.recorderError||why);
     }
     s.onComplete?.({transcript:spoken,audioReady:!!s.audioReady,recognitionError:s.speechError,recordError:s.recorderError});
   }

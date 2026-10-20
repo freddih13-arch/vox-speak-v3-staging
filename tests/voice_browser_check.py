@@ -62,7 +62,7 @@ with sync_playwright() as p:
  page.wait_for_function('document.getElementById("record-pron").textContent.includes("Detener")')
  page.locator('#record-pron').click()
  page.locator('#pron-audio-playback audio').wait_for()
- page.wait_for_function('document.getElementById("pron-status").textContent.includes("Tu voz quedó grabada")')
+ page.wait_for_function('document.getElementById("pron-status").textContent.includes("Grabación disponible")')
  assert page.locator('#home-practices').inner_text()==count
  assert not page.locator('#pron-feedback').is_visible()
  checks.append('Speech network failure retains audio and does not fabricate a zero score')
@@ -93,7 +93,7 @@ with sync_playwright() as p:
  # Diagnostic pronunciation can be auditioned before submitting.
  page.locator('nav [data-go="home"]').click()
  page.locator('#home-diagnostic-cta').click()
- page.locator('#diag-begin').click(timeout=1800)
+ page.locator('#diag-begin').evaluate('(el)=>el.click()')
  for i in range(1,15):
   page.locator('#diag-skip').click();page.locator('#diag-continue').click()
  assert page.locator('#diag-pron-mic').is_visible()

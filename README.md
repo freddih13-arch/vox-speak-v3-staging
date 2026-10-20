@@ -95,3 +95,9 @@ La corrección añade `src/core/voice-capture.js`, que administra dos procesos d
 6. En **Diagnóstico** puedes escuchar tu grabación de pronunciación *antes* de guardar la transcripción; en Speaking puedes escucharla antes de autoevaluarte.
 
 Pruebas: `node --test tests/core.test.js`, `python tests/browser_check.py` y `python tests/voice_browser_check.py`. Las pruebas de voz usan dispositivos falsos inyectados en Chromium; sigue siendo indispensable la prueba de micro y red real en Android.
+
+## Reconocimiento Android (revisión 0.3)
+
+Se agregó Diagnóstico del reconocimiento en Inicio. Prueba el Web Speech API sin grabación paralela y muestra el código exacto de error, con informe técnico copiable sin audio ni transcripción. El control «Modo compatible» evita `MediaRecorder` en el mismo ejercicio si el reconocimiento solo funciona; la grabación de voz sigue disponible mediante su botón dedicado. Preferencia limitada al entorno staging y separada de claves v2. Si Chrome devuelve `network` o `service-not-allowed`, no existe una corrección garantizada por JS del lado del navegador: para verdadero reconocimiento independiente haría falta integrar un proveedor adicional.
+
+El audio grabado no se incorpora al informe técnico ni se persiste en servidor. No se asigna ninguna puntuación si falta transcripción.

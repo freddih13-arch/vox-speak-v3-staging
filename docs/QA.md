@@ -28,3 +28,12 @@
 - Entrenador clásico, entrevista, Islas, reproducción independiente y diagnóstico usan la nueva captura compartida.
 - Micrófono real Android, permisos y compatibilidad de captura simultánea: **pendiente de reconfirmación del usuario**, no se da por aprobado desde Chromium simulado.
 - Cambio realizado únicamente en repositorio de staging; **producción 2.1 no cambia**.
+
+## 2026-10-20 · Android speech diagnostic patch
+
+* Added a separate Web Speech recognition-only diagnostic which does not start MediaRecorder concurrently and reports exact Web Speech `error` codes with non-transcription troubleshooting. The report excludes voice recordings/transcripts and is only copied by user action.
+* Added opt-in compatibility mode on staging: voice recognition without simultaneous local recording. The dedicated Record My Voice action remains unchanged. The switch is persisted under `vox_stage0_preview__recognition_only_mode`, not v2 keys.
+* Changed no-result output so recognition errors have bracketed codes and no fictitious pronunciation score.
+* Bumped service-worker cache to refresh HTML and scripts.
+* Test locally using: `npm test`, `python tests/voice_browser_check.py`, `python tests/speech_diagnostics_browser_check.py`, `python tests/browser_check.py`, `python tests/live_staging_smoke.py`.
+* **Pending on real Android:** ask the user to run standalone recognition diagnostic and provide the code. If Chrome returns `network` or `service-not-allowed` in standalone recognition mode, there is no guaranteed local JavaScript workaround. A real alternate speech-recognition provider must be considered separately under the $0 constraint.
