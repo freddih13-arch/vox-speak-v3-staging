@@ -43,6 +43,19 @@ with sync_playwright() as p:
  page.locator('#listen-options button').filter(has_text=correct).click()
  assert 'Interpretaste correctamente' in page.locator('#listen-result').inner_text()
  assert page.locator('#home-practices').inner_text()=='1', 'single listening score must flow to existing stats'
+ # Regression: the replay control must work AFTER the answer instead of remaining visually active but silent.
+ played_before=page.evaluate('window.__spoken.length')
+ page.locator('#play-listen').click()
+ assert page.evaluate('window.__spoken.length')==played_before+1,'post-answer replay button was a no-op'
+ assert page.locator('#home-practices').inner_text()=='1','replay must not duplicate statistics'
+ # Regression: retry exactly the same question as an unscored practice, then allow normal next.
+ page.locator('#listen-result').get_by_role('button',name='🔁 Intentar de nuevo (práctica sin nota)').click()
+ assert all(options.nth(i).is_disabled() for i in range(4)),'retry must wait for audio again'
+ page.locator('#play-listen').click()
+ assert all(not options.nth(i).is_disabled() for i in range(4)),'retry unlocks after listening'
+ page.locator('#listen-options button').filter(has_text=correct).click()
+ assert page.locator('#home-practices').inner_text()=='1','retry should not emit another scored event'
+ assert 'sin nota' in page.locator('#listen-result').inner_text()
  assert page.evaluate("localStorage.getItem('vox_speak_free_v1')")=='PRODUCTION'
  assert not page.locator('#next-listen').is_hidden()
  page.locator('#next-listen').click()
