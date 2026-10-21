@@ -30,12 +30,10 @@ with sync_playwright() as p:
    page.add_script_tag(content=(root/path).read_text())
   page.add_script_tag(content=bundle)
   page.wait_for_function('window.VoxCoach!==undefined',timeout=2000)
-  page.screenshot(path='/mnt/data/vox-coach-home-qa.png',full_page=True)
   assert page.locator('#coach-home h1').inner_text()=='Tu inglés, con dirección.'
   assert page.locator('nav [data-go="coach"]').count()==1
   # The exact previously broken CTA must open the coach every time.
   page.locator('#coach-home .coach-main-action').click();assert page.locator('#coach').is_visible()
-  page.screenshot(path='/mnt/data/vox-coach-lesson-qa.png',full_page=True)
   assert 'PASO 1/4' in page.locator('#coach-phase').inner_text()
   options=page.locator('#coach-content .coach-answer');assert options.count()==4
   assert all(options.nth(i).is_disabled() for i in range(4))
