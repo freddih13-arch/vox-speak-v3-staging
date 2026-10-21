@@ -8,11 +8,11 @@ export function validateBank(){
   return true;
 }
 validateBank();
-export const defaultState=()=>({version:1,seen:[],queue:[],history:[],total:0,correct:0,firstListenCorrect:0,mode:'mixed'});
+export const defaultState=()=>({version:1,seen:[],queue:[],history:[],total:0,correct:0,firstListenCorrect:0,mode:'mixed',pending:null});
 export function readState(store=localStorage){
   try{const text=store.getItem(KEY);if(text===null)return {state:defaultState(),writable:true};const s=JSON.parse(text);
     if(s?.version!==1||!Array.isArray(s.seen)||!Array.isArray(s.queue)||!Array.isArray(s.history))return {state:defaultState(),writable:false};
-    return {state:{...defaultState(),...s,seen:s.seen.filter(x=>typeof x==='string').slice(-60),queue:s.queue.filter(x=>x==='professional'||x==='general').slice(0,10),history:s.history.filter(x=>x&&typeof x==='object').slice(-100)},writable:true};
+    return {state:{...defaultState(),...s,seen:s.seen.filter(x=>typeof x==='string').slice(-60),queue:s.queue.filter(x=>x==='professional'||x==='general').slice(0,10),history:s.history.filter(x=>x&&typeof x==='object').slice(-100),pending:typeof s.pending==='string'&&QUESTIONS.some(q=>q.id===s.pending)?s.pending:null},writable:true};
   }catch{return {state:defaultState(),writable:false}}
 }
 export function persist(state,store=localStorage){try{store.setItem(KEY,JSON.stringify(state));return true}catch{return false}}
