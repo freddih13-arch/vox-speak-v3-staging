@@ -34,7 +34,7 @@ test('navigation and sentence changes cancel transient analyses and respect data
   assert.match(panel,/vox:tab-change/);
   assert.match(panel,/window\.VoxVoice\?\.clearPlayback/);
   assert.match(read('src/core/storage.js'),/vox_stage0_preview__/);
-  assert.match(sw,/const CACHE='vox-v3-coach30-20261021-r1'/);
+  assert.match(sw,/const CACHE='vox-v3-voice30-20261021-r1'/); assert.ok(sw.includes('src/phonetics/ipa-guide.js'));
   for(const asset of ['src/coach/coach.js','src/coach/curriculum.js','src/ui/coach.css'])assert.ok(sw.includes(asset));
   for(const file of ['pronunciation-lab.js','phoneme-worker.js','phonemes-local.js','audio-processor.js','ctc-decode.js','vocab-gruut.js']){
     assert.match(sw,new RegExp(file.replaceAll('.','\\.')));

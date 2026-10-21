@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="src/ui/islands.css">
   <link rel="stylesheet" href="src/ui/phonetics.css">
   <link rel="stylesheet" href="src/ui/coach.css">
+  <link rel="stylesheet" href="src/ui/ipa-guide.css">
   <link rel="stylesheet" href="src/ui/listening.css">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/svg+xml" href="icon.svg">
@@ -74,7 +75,7 @@
     </section>
     <section class="screen" id="pronounce" aria-label="Pronunciación">
       <p class="eyebrow">02 / Pronunciación</p><h1>Que te entiendan<br><span class="gradient">a la primera.</span></h1><p class="lead">Escucha una frase, repítela y compara tu transcripción con el objetivo. Sin evaluaciones inventadas de fonemas.</p>
-      <div class="card"><div class="cardhead"><span id="pron-category" class="pill">Business English</span><span class="question-counter" id="pron-count">Frase 1</span></div><p class="quote" id="target-phrase"></p><p id="phrase-translation" class="muted-small"></p><div class="fieldrow"><label for="pron-rate">Velocidad modelo</label><select class="select" id="pron-rate"><option value="0.76">Lenta</option><option value="0.93" selected>Natural pausada</option><option value="1.08">Rápida</option></select></div><div class="controls"><button class="btn violet" id="play-pron">🔊 Escuchar</button><button class="btn primary" id="record-pron">🎤 Repetir</button></div><div id="pron-audio-playback" class="playback" aria-live="polite"></div><p id="pron-status" class="muted-small" aria-live="polite">Pulsa “Repetir” y habla en inglés.</p><div class="resultbox hidden" id="pron-feedback" aria-live="polite"></div><p class="hint" id="phrase-tip"></p>
+      <div class="card"><div class="cardhead"><span id="pron-category" class="pill">Business English</span><span class="question-counter" id="pron-count">Frase 1</span></div><p class="quote" id="target-phrase"></p><div id="pron-ipa-guide" class="ipa-in-training"></div><p id="phrase-translation" class="muted-small"></p><div class="fieldrow"><label for="pron-rate">Velocidad modelo</label><select class="select" id="pron-rate"><option value="0.76">Lenta</option><option value="0.93" selected>Natural pausada</option><option value="1.08">Rápida</option></select></div><div class="controls"><button class="btn violet" id="play-pron">🔊 Escuchar</button><button class="btn primary" id="record-pron">🎤 Repetir</button></div><div id="pron-audio-playback" class="playback" aria-live="polite"></div><p id="pron-status" class="muted-small" aria-live="polite">Pulsa “Repetir” y habla en inglés.</p><div class="resultbox hidden" id="pron-feedback" aria-live="polite"></div><p class="hint" id="phrase-tip"></p>
       <div class="card phonetic-lab" aria-label="Análisis fonético experimental">
         <span class="phonetic-badge">EXPERIMENTAL · Q4 · IPA LOCAL</span>
         <h3>Explorador de sonidos</h3>
@@ -108,11 +109,11 @@
         <div class="island-meta"><span class="illustration" id="island-detail-emoji">🏝️</span><div><h2 id="island-detail-name"></h2><div class="island-header-sub" id="island-detail-sub"></div></div></div>
         <div class="mini-stats"><span id="is-phrase-no">1/10</span><span id="is-cardstats">0 intentos</span></div>
         <div id="island-mode-list" class="island-modes" role="group" aria-label="Tipo de práctica"><button class="mode active" data-mode="shadow" aria-pressed="true">🗣️ Escucha y repite</button><button class="mode" data-mode="recall" aria-pressed="false">🧠 Traduce sin mirar</button><button class="mode" data-mode="listen" aria-pressed="false">🎧 Dictado a ciegas</button></div>
-        <div id="is-card-text" class="phrase-hero" aria-live="polite"></div><div class="phrase-actions"><button class="btn violet" id="is-listen">🔊 Escuchar</button><button class="btn ghost" id="is-slow">🐢 Despacio</button><button class="btn primary" id="is-record">🎤 Hablar</button><button class="btn ghost" id="is-reveal" hidden>👁 Revelar inglés</button></div>
+        <div id="is-card-text" class="phrase-hero" aria-live="polite"></div><div class="phrase-actions"><button class="btn violet" id="is-listen">🔊 Escuchar</button><button class="btn ghost" id="is-slow">🐢 Despacio</button><button class="btn primary" id="is-record">🎤 Hablar y revisar palabras</button><button class="btn ghost" id="is-reveal" hidden>👁 Revelar inglés</button></div>
         <p id="is-speaking-info" class="helper"></p><p id="is-hint" class="helper"></p>
         <div id="is-input-wrap" hidden><label for="is-input" class="helper">Escribe exactamente lo que escuchaste</label><textarea id="is-input" class="island-input" rows="3" placeholder="Type what you heard..."></textarea><button class="btn small primary" id="is-verify-text" style="margin-top:9px">Comprobar dictado</button></div>
-        <p class="state-line" id="is-status" aria-live="polite">Listo para practicar.</p><div id="is-result" class="island-feedback" aria-live="polite" hidden></div>
-        <div class="card soft"><h3>🎙 Compara tu propia voz</h3><p class="muted-small">Grábate y escúchate. La grabación no se guarda al cambiar de frase.</p><button class="btn small ghost" id="is-record-audio">⏺ Grabar mi voz</button><div id="audio-playback" class="playback" style="margin-top:10px"></div></div>
+        <p class="state-line" id="is-status" aria-live="polite">Listo para practicar.</p><div id="is-live-text" class="voice-live" aria-live="polite" hidden></div><div id="is-speech-playback" class="playback"></div><div id="is-result" class="island-feedback" aria-live="polite" hidden></div>
+        <div class="card soft"><h3>🎙 Compara tu propia voz</h3><p class="muted-small">Modo fiable: graba y reproduce tu voz incluso si Chrome no reconoce palabras. Para comparar el texto reconocido, usa «Hablar y revisar palabras» de arriba.</p><button class="btn small ghost" id="is-record-audio">⏺ Grabar mi voz</button><div id="audio-playback" class="playback" style="margin-top:10px"></div></div>
         <div class="island-inline-actions" style="margin-top:14px"><button class="btn small ghost" id="is-prev">← Anterior</button><button class="btn small ghost" id="is-learned">☆ Marcar dominada</button><button class="btn small primary" id="is-next">Siguiente →</button></div>
         <p class="eyebrow" style="margin-top:26px">Frases de esta isla</p><div id="is-phrase-list" class="mini-phrase-list"></div>
         <button id="is-delete-custom" class="btn small ghost" style="margin-top:10px">Eliminar isla personalizada (solo tus islas)</button>
@@ -136,6 +137,7 @@
   <nav class="nav" aria-label="Menú principal"><div class="navinner"><button data-go="home" class="active"><span class="ico">⌂</span>Inicio</button><button data-go="coach"><span class="ico">▶</span>Entrenar</button><button data-go="islands"><span class="ico">🏝️</span>Biblioteca</button><button data-go="progress"><span class="ico">▥</span>Progreso</button></div></nav>
   <script src="src/core/speech-diagnostics.js"></script>
   <script src="src/core/voice-capture.js"></script>
+  <script src="src/phonetics/ipa-guide.js"></script>
   <script src="src/legacy/training-data.js"></script>
   <script src="src/legacy/training.js"></script>
   <script src="src/data/islands-data.js"></script>
