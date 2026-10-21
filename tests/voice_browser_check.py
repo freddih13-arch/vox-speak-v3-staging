@@ -11,18 +11,18 @@ module_order=['src/core/storage.js','src/diagnostic/questions.js','src/diagnosti
 bundle='(function(){\n'+'\n'.join(re.sub(r'\bexport\s+(?=const|let|function|class)','',re.sub(r'^import\s+.+?;\s*$', '',(ROOT/path).read_text(),flags=re.M)) for path in module_order)+'\n})();'
 legacy=['src/legacy/training-data.js','src/legacy/training.js','src/data/islands-data.js','src/legacy/islands.js']
 MOCK=r'''
-window.__mic={stops:0,aborts:0,fail:false,captures:0};
+window.__mic={stops:0,aborts:0,fail:false,captures:0,endEarly:false};
 Object.defineProperty(navigator,'mediaDevices',{configurable:true,value:{getUserMedia:async()=>({getTracks:()=>[{stop(){}}]})}});
 window.MediaRecorder=class{
   static isTypeSupported(type){return type.startsWith('audio/webm')}
-  constructor(){this.mimeType='audio/webm';this.state='inactive'}
+  constructor(){this.mimeType='audio/webm';this.state='inactive';window.__mic.recorder=this}
   start(){this.state='recording';window.__mic.captures++}
   requestData(){}
   stop(){this.state='inactive';setTimeout(()=>{this.ondataavailable?.({data:new Blob(['fake-voice'],{type:'audio/webm'})});this.onstop?.()},1)}
 };
 window.SpeechRecognition=class{
   constructor(){this.lang='en-US'}
-  start(){window.__mic.current=this}
+  start(){window.__mic.current=this;if(window.__mic.endEarly)setTimeout(()=>this.onend?.(),8)}
   stop(){window.__mic.stops++;setTimeout(()=>{
     if(window.__mic.fail)this.onerror?.({error:'network'});
     else this.onresult?.({results:[[{transcript:'I achieved my sales targets',confidence:.85}]]});
@@ -33,7 +33,7 @@ window.SpeechRecognition=class{
 '''
 checks=[]
 with sync_playwright() as p:
- browser=p.chromium.launch(headless=True,executable_path='/usr/bin/chromium',args=['--no-sandbox'])
+ browser=p.chromium.launch(headless=True,args=['--no-sandbox'])
  page=browser.new_page(viewport={'width':393,'height':852})
  errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
  page.set_content(html,wait_until='load')
@@ -66,6 +66,18 @@ with sync_playwright() as p:
  assert page.locator('#home-practices').inner_text()==count
  assert not page.locator('#pron-feedback').is_visible()
  checks.append('Speech network failure retains audio and does not fabricate a zero score')
+ # Regression: speech recognition ending early must NOT automatically stop MediaRecorder.
+ page.evaluate('window.__mic.fail=false;window.__mic.endEarly=true')
+ old_count=page.locator('#home-practices').inner_text()
+ page.locator('#record-pron').click()
+ page.wait_for_function('document.getElementById("record-pron").textContent.includes("Detener")')
+ page.wait_for_function('document.getElementById("pron-status").textContent.includes("grabación sigue activa")')
+ assert page.evaluate('window.__mic.recorder.state')=='recording','ASR onend prematurely stopped local capture'
+ page.locator('#record-pron').click()
+ page.locator('#pron-audio-playback audio').wait_for()
+ assert page.locator('#home-practices').inner_text()==old_count,'no transcript must not score'
+ page.evaluate('window.__mic.endEarly=false')
+ checks.append('ASR auto-end leaves local recorder active until explicit stop')
  # Island: local audio + speech recognition should use the same workflow.
  page.evaluate('window.__mic.fail=false')
  page.locator('nav [data-go="islands"]').click()

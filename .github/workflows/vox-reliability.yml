@@ -1,0 +1,30 @@
+name: VOX reliability P0 (draft branch)
+on:
+  push:
+    branches:
+      - audit/product-experience-2026-10-21
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Unit and integration checks
+        run: npm test
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install browser QA dependencies
+        run: |
+          python -m pip install --disable-pip-version-check playwright beautifulsoup4
+          python -m playwright install --with-deps chromium
+      - name: Repeat listening flow in Chromium
+        run: python tests/listening.browser_check.py
+      - name: Repeat voice capture flow in Chromium
+        run: python tests/voice_browser_check.py

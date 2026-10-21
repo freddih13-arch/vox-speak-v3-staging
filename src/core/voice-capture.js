@@ -61,13 +61,13 @@
     };
     active=s;
     const start=async()=>{
-      s.button.classList.add('recording');s.button.textContent='⌛ Activando micrófono…';
+      s.button.classList.add('recording');s.button.textContent='⌛ Activando micrófono…';s.button.disabled=true;
       safeMsg(s,'Pidiendo permiso al micrófono…');
       if(s.compatMode){s.recorderDone=true}
       else if(navigator.mediaDevices?.getUserMedia && window.MediaRecorder){
         try{
           const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}});
-          if(!s.isCurrent()){stream.getTracks().forEach(t=>t.stop());return}
+          if(!s.isCurrent()||s.stopping){stream.getTracks().forEach(t=>t.stop());if(s.stopping&&s.isCurrent()){s.recorderDone=true;finalize(s)}return}
           s.stream=stream;
           const formats=['audio/webm;codecs=opus','audio/webm','audio/mp4'];
           const mime=formats.find(type=>MediaRecorder.isTypeSupported?.(type));
@@ -98,12 +98,12 @@
           const r=new Recognition();s.recognition=r;r.lang=s.lang||'en-US';r.interimResults=false;r.continuous=false;r.maxAlternatives=1;
           r.onresult=e=>{if(!s.isCurrent())return;const parts=[];for(let i=0;i<e.results.length;i++){const result=e.results[i];if(result[0]?.transcript)parts.push(result[0].transcript)}if(parts.length)s.transcript=parts.join(' ').trim()};
           r.onerror=e=>{if(!s.isCurrent())return;s.speechError=e.error||'unknown';if(!s.stopping)safeMsg(s,`⚠️ Código [${s.speechError}]: ${MSG[s.speechError]||'Fallo no identificado.'}`)};
-          r.onend=()=>{if(!s.isCurrent())return;s.speechDone=true;if(!s.stopping)s.stop();else finalize(s)};
+          r.onend=()=>{if(!s.isCurrent())return;s.speechDone=true;if(s.stopping){finalize(s);return}if(s.compatMode||!s.recording){s.stop();return}safeMsg(s,s.transcript?'✅ Transcripción recibida. Puedes continuar grabando y pulsar «Detener y evaluar».':'El reconocimiento terminó; la grabación sigue activa. Pulsa «Detener y evaluar» para guardar tu voz.');};
           r.start();s.speechStarted=true;
         }catch(e){s.speechError=e.name||'unknown';s.speechDone=true}
       }else if(s.recognize){s.speechError='unsupported';s.speechDone=true}
       if(!s.isCurrent())return;
-      if(!s.recording&&!s.speechStarted){s.button.textContent=s.buttonLabel;s.button.classList.remove('recording');safeMsg(s,s.recorderError||'El reconocimiento y la grabación no están disponibles.');active=null;return}
+      if(!s.recording&&!s.speechStarted){safeMsg(s,s.recorderError||'El reconocimiento y la grabación no están disponibles.');active=null;destroy(s);return}
       s.button.textContent='■ Detener y evaluar';s.button.disabled=false;
       safeMsg(s,s.compatMode?'🔎 Modo compatible: reconocimiento sin grabación simultánea. Habla y pulsa «Detener y evaluar».':s.recorderError?`${s.recorderError} Habla para intentar transcripción.`:'🎙 Grabando. Habla y pulsa «Detener y evaluar»; después podrás escuchar tu voz.');
     };
@@ -117,6 +117,8 @@
     if(spoken){
       if(s.status)s.status.textContent=`Chrome reconoció: “${spoken}”. ${s.audioReady?'Puedes reproducir tu grabación abajo.':''}`;
       try{s.onText?.(spoken)}catch(error){if(s.status)s.status.textContent=`Audio listo. La evaluación falló: ${error.message}`}
+    }else if(s.status && !s.recognize){
+      s.status.textContent=s.audioReady?'Grabación disponible. Puedes reproducirla o grabar otra vez.':(s.recorderError||'No se recibió audio; puedes intentarlo nuevamente.');
     }else if(s.status){
       const code=s.speechError||'no-result';
       const reason=MSG[code]||MSG.unknown;
