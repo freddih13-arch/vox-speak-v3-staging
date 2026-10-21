@@ -5,6 +5,7 @@
   'use strict';
   let active = null;
   const playbackUrls=new WeakMap();
+  const isActiveButton=button=>!!active&&!active.finished&&!active.cancelled&&active.button===(typeof button==='string'?document.getElementById(button):button);
   function clearPlayback(element){const el=typeof element==='string'?document.getElementById(element):element;if(!el)return;const url=playbackUrls.get(el);if(url){URL.revokeObjectURL(url);playbackUrls.delete(el)}el.replaceChildren()}
   const SR = () => window.SpeechRecognition || window.webkitSpeechRecognition;
   const MSG = {
@@ -56,7 +57,12 @@
         try{s.recorder.stop()}catch(e){s.recorderDone=true;s.recorderError=errText(e)}
       }else if(!s.recorder) s.recorderDone=true;
       safeMsg(s,'Finalizando grabación y transcripción. Espera unos segundos…');
-      s.timeout=setTimeout(()=>{if(!s.isCurrent()||s.finished)return;s.speechDone=true;s.speechError||='timeout';finalize(s)},5500);
+      s.timeout=setTimeout(()=>{if(!s.isCurrent()||s.finished)return;
+    if(!s.speechDone){s.speechDone=true;s.speechError||='timeout';}
+    if(!s.recorderDone){s.recorderDone=true;s.recorderError||='La grabación no finalizó correctamente; vuelve a intentarlo.';
+      if(s.stream){s.stream.getTracks().forEach(t=>t.stop());s.stream=null;}}
+    finalize(s);
+  },7000);
       finalize(s);
     };
     active=s;
@@ -95,8 +101,15 @@
       const Recognition=SR();
       if(s.recognize && Recognition){
         try{
-          const r=new Recognition();s.recognition=r;r.lang=s.lang||'en-US';r.interimResults=false;r.continuous=false;r.maxAlternatives=1;
-          r.onresult=e=>{if(!s.isCurrent())return;const parts=[];for(let i=0;i<e.results.length;i++){const result=e.results[i];if(result[0]?.transcript)parts.push(result[0].transcript)}if(parts.length)s.transcript=parts.join(' ').trim()};
+          const r=new Recognition();s.recognition=r;r.lang=s.lang||'en-US';r.interimResults=!!s.onPartial;r.continuous=false;r.maxAlternatives=1;
+          r.onresult=e=>{if(!s.isCurrent())return;const finals=[],partial=[];
+  for(let i=0;i<e.results.length;i++){const result=e.results[i],words=result[0]?.transcript?.trim();if(!words)continue;
+    if(result.isFinal===false)partial.push(words);else finals.push(words)}
+  if(finals.length)s.transcript=finals.join(' ').trim();
+  if(typeof s.onPartial==='function'&&(partial.length||finals.length)){
+    try{s.onPartial({text:[s.transcript,...partial].filter(Boolean).join(' ').trim(),final:partial.length===0})}catch(_){/* indicator optional */}
+  }
+};
           r.onerror=e=>{if(!s.isCurrent())return;s.speechError=e.error||'unknown';if(!s.stopping)safeMsg(s,`⚠️ Código [${s.speechError}]: ${MSG[s.speechError]||'Fallo no identificado.'}`)};
           r.onend=()=>{if(!s.isCurrent())return;s.speechDone=true;if(s.stopping){finalize(s);return}if(s.compatMode||!s.recording){s.stop();return}safeMsg(s,s.transcript?'✅ Transcripción recibida. Puedes continuar grabando y pulsar «Detener y evaluar».':'El reconocimiento terminó; la grabación sigue activa. Pulsa «Detener y evaluar» para guardar tu voz.');};
           r.start();s.speechStarted=true;
@@ -127,5 +140,5 @@
     }
     s.onComplete?.({transcript:spoken,audioReady:!!s.audioReady,recognitionError:s.speechError,recordError:s.recorderError});
   }
-  window.VoxVoice={toggle,cancel,clearPlayback};
+  window.VoxVoice={toggle,cancel,clearPlayback,isActiveButton};
 })();
