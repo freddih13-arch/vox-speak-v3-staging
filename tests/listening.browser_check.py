@@ -18,7 +18,7 @@ Object.defineProperty(window,'localStorage',{configurable:true,value:{_m:new Map
 Object.defineProperty(window,'speechSynthesis',{configurable:true,value:{getVoices(){return [{lang:'en-US',name:'Test English'}]},addEventListener(){},cancel(){},speak(u){window.__spoken.push(u.text);setTimeout(()=>{if(window.__ttsFail)u.onerror?.({error:'synthesis-failed'});else u.onstart?.()},25)}}});
 '''
 with sync_playwright() as p:
- browser=p.chromium.launch(headless=True,executable_path='/usr/bin/chromium',args=['--no-sandbox'])
+ browser=p.chromium.launch(headless=True,args=['--no-sandbox'])
  page=browser.new_page(viewport={'width':393,'height':852})
  errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
  page.set_content(html,wait_until='load')
