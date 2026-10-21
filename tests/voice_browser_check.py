@@ -85,7 +85,7 @@ with sync_playwright() as p:
  page.locator('#is-record').click()
  page.wait_for_function('document.getElementById("is-record").textContent.includes("Detener")')
  page.locator('#is-record').click()
- page.locator('#audio-playback audio').wait_for()
+ page.locator('#is-speech-playback audio').wait_for()
  page.wait_for_function('!document.getElementById("is-result").hidden')
  checks.append('Island speak captures audio and evaluates recognized words')
  # No transcription mode: there is always playback, never a silent reset.
