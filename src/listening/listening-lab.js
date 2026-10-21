@@ -5,7 +5,7 @@ const root=$('listen');
 if(root){
   let {state,writable}=readState();
   const el={count:$('listen-count'),mode:$('listen-mode'),rate:$('listen-rate'),play:$('play-listen'),options:$('listen-options'),result:$('listen-result'),next:$('next-listen'),status:$('listen-status'),reveal:$('listen-reveal'),summary:$('listen-summary'),topic:$('listen-topic')};
-  let current=null,choices=[],plays=0,answered=false,revealed=false,activeUtterance=null;
+  let current=null,choices=[],plays=0,answered=false,revealed=false,practiceRetry=false,activeUtterance=null;
   if(!writable){el.status.textContent='El historial anterior de este módulo es incompatible o no se pudo leer. No se sobrescribirá; puedes practicar durante esta sesión.';}
   function save(){if(writable&&!persist(state)){writable=false;el.status.textContent='No se pudo guardar el progreso de listening. La práctica continuará en esta sesión.';}}
   function chooseVoice(){if(!('speechSynthesis'in window))return null;const v=speechSynthesis.getVoices();return v.find(x=>/^en[-_]US/i.test(x.lang)&&/google|natural|neural/i.test(x.name))||v.find(x=>/^en[-_](US|GB)/i.test(x.lang))||v.find(x=>/^en/i.test(x.lang))||null;}
@@ -20,10 +20,10 @@ if(root){
     el.result.className='feedback hidden';el.result.replaceChildren();el.next.classList.add('hidden');el.options.replaceChildren();el.reveal.hidden=false;
     choices=optionsFor(current);choices.forEach((o,i)=>{const b=document.createElement('button');b.type='button';b.className='opt';b.disabled=true;const letter=document.createElement('span');letter.className='letter';letter.textContent=String.fromCharCode(65+i);const text=document.createElement('span');text.textContent=o.text;b.append(letter,text);b.addEventListener('click',()=>choose(i));el.options.append(b);});
     el.play.textContent='🔊 Escuchar pregunta (sin texto)';el.status.textContent='Escucha la pregunta antes de responder. El texto en inglés está oculto.';
-    plays=0;answered=false;revealed=false;updateSummary();
+    plays=0;answered=false;revealed=false;practiceRetry=false;updateSummary();
   }
   function newQuestion(){if('speechSynthesis'in window)speechSynthesis.cancel();const p=nextQuestion(state,el.mode.value);state=p.state;current=p.question;save();render();}
-  function replay(){if(!current||answered||revealed)return;if(say(current.question,el.rate.value)){plays++;el.play.textContent=plays===1?'🔁 Escuchar de nuevo':'🔁 Repetir pregunta';el.status.textContent=plays===1?'Primera escucha. Elige qué te preguntaron.':'Escucha adicional. Identifica la intención, no palabras sueltas.';el.options.querySelectorAll('button').forEach(x=>x.disabled=false);}}
+  function replay(){if(!current)return;const alreadyDone=answered||revealed;if(say(current.question,el.rate.value)){if(alreadyDone){el.play.textContent='🔁 Escuchar pregunta otra vez';el.status.textContent='Puedes repetir esta pregunta cuanto quieras. No cambia tu puntuación.';return;}plays++;el.play.textContent=plays===1?'🔁 Escuchar de nuevo':'🔁 Repetir pregunta';el.status.textContent=plays===1?'Primera escucha. Elige qué te preguntaron.':'Escucha adicional. Identifica la intención, no palabras sueltas.';el.options.querySelectorAll('button').forEach(x=>x.disabled=false);}}
   function addP(parent,tag,text){const e=document.createElement(tag);e.textContent=text;parent.append(e);return e;}
   function showResult(correct,skip=false){const box=el.result;box.className='feedback notice '+(skip?'warn':correct?'good':'warn');box.replaceChildren();
     addP(box,'strong',skip?'Texto revelado: intento sin puntuación.':correct?'✓ Interpretaste correctamente la pregunta.':'✦ La intención era diferente: revisa los matices.');
@@ -32,13 +32,22 @@ if(root){
     addP(box,'p',`Clave: ${current.note}`);
     addP(box,'p',`Respuesta breve que podrías practicar: “${current.answer}”`);
     const example=document.createElement('button');example.type='button';example.className='btn small ghost';example.textContent='🔊 Escuchar respuesta modelo';example.addEventListener('click',()=>say(current.answer,0.9));box.append(example);
-    el.next.classList.remove('hidden');el.reveal.hidden=true;el.play.disabled=false;updateSummary();
+    const again=document.createElement('button');again.type='button';again.className='btn small ghost';again.textContent='🔁 Intentar de nuevo (práctica sin nota)';again.addEventListener('click',()=>{
+      if('speechSynthesis'in window)speechSynthesis.cancel();
+      answered=false;revealed=false;plays=0;practiceRetry=true;
+      el.options.querySelectorAll('button').forEach(button=>{button.disabled=true;button.classList.remove('correct','incorrect');});
+      el.result.className='feedback hidden';el.result.replaceChildren();el.next.classList.add('hidden');el.reveal.hidden=false;
+      el.play.textContent='🔊 Escuchar de nuevo para practicar';
+      el.status.textContent='Misma pregunta, nuevo intento sin calificación. Escucha antes de responder.';
+    });box.append(again);
+    el.next.classList.remove('hidden');el.reveal.hidden=true;el.play.disabled=false;el.play.textContent='🔁 Escuchar pregunta otra vez';updateSummary();
   }
   function choose(index){if(!current||answered||revealed||plays===0)return;answered=true;const correct=choices[index].correct;
-    state=recordAnswer(state,current,{correct,plays});save();
+    if(!practiceRetry){state=recordAnswer(state,current,{correct,plays});save();}
     el.options.querySelectorAll('button').forEach((b,i)=>{b.disabled=true;b.classList.toggle('correct',choices[i].correct);b.classList.toggle('incorrect',i===index&&!correct);});
-    window.dispatchEvent(new CustomEvent('vox:listening-scored',{detail:{correct}}));
+    if(!practiceRetry)window.dispatchEvent(new CustomEvent('vox:listening-scored',{detail:{correct}}));
     showResult(correct);
+    if(practiceRetry)el.status.textContent='Reintento completado como práctica; no se añadió una segunda calificación.';
   }
   el.play.addEventListener('click',replay);
   el.next.addEventListener('click',newQuestion);
