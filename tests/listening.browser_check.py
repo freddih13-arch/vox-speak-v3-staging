@@ -28,7 +28,7 @@ with sync_playwright() as p:
  for name in ['src/legacy/training-data.js','src/legacy/training.js']:
   page.add_script_tag(content=(root/name).read_text())
  page.add_script_tag(content=bundle)
- page.locator('nav [data-go="listen"]').click()
+ page.locator('#home [data-go="listen"]').first.evaluate('(el)=>el.click()')
  assert page.locator('#listen-count').is_visible()
  options=page.locator('#listen-options button')
  assert options.count()==4

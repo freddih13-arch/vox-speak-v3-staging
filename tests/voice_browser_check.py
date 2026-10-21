@@ -44,7 +44,7 @@ with sync_playwright() as p:
  for path in legacy:page.add_script_tag(content=(ROOT/path).read_text())
  page.add_script_tag(content=bundle)
  # Legacy pronunciation: user presses the STOP button before a result is received.
- page.locator('nav [data-go="pronounce"]').click()
+ page.locator('#home [data-go="pronounce"]').first.evaluate('(el)=>el.click()')
  page.locator('#record-pron').click()
  page.wait_for_function('document.getElementById("record-pron").textContent.includes("Detener")')
  page.locator('#record-pron').click()
@@ -95,7 +95,7 @@ with sync_playwright() as p:
  page.locator('#audio-playback audio').wait_for()
  checks.append('Record-my-voice control produces audio without speech recognition')
  # Interview uses the same capture flow, with a spoken-word coverage proxy.
- page.locator('nav [data-go="interview"]').click()
+ page.locator('#home [data-go="interview"]').first.evaluate('(el)=>el.click()')
  page.locator('#record-interview').click()
  page.wait_for_function('document.getElementById("record-interview").textContent.includes("Detener")')
  page.locator('#record-interview').click()

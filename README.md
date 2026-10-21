@@ -141,3 +141,20 @@ Módulo nuevo en la pestaña Listening, integrado **sin tocar `main`** ni `vox-s
 Pendiente: validar con Android real y revisar la naturalidad de voces por dispositivo; posible crecimiento gradual del banco, sin asumir que 60 preguntas equivalen a contenido infinito.
 
 El módulo fonético Q4 y su tarea de diagnóstico del micrófono aplazada permanecen **sin cambios**.
+
+
+## VOX Coach 30 — entrenamiento operativo (octubre 2026)
+
+Nuevo **entrenador guiado** por 30 sesiones de estudio autogestionadas y 120 actividades (dos preguntas de comprensión, una frase de shadowing y una entrevista por sesión). Conserva el currículo 60 % profesional y 40 % cotidiano **en preguntas de comprensión**, con el banco existente de 60 formulaciones. No requiere suscripciones ni API.
+
+- **Inicio** ahora recomienda una sola acción, botón para reanudar sesión y progreso 1/30 a 30/30; la navegación principal muestra Inicio, Entrenar, Biblioteca, Progreso. El antiguo botón `start-session` continúa operativo y redirige al entrenador.
+- Audio de preguntas disponible para repetir en cualquier momento; respuestas habilitadas solo al comenzar reproducción real (`onstart`) y alternativa de texto sin nota si falla la voz.
+- **Repetición y feedback**: explica la intención de la pregunta, permite reintentar y repasar los errores de comprensión.
+- **Speaking**: escucha la frase, graba/reproduce con `VoxVoice`, repite; usa transcripción de Chrome si existe o continúa con autoevaluación si falla. No promete análisis fonético en tiempo real ni nota B2.
+- **Entrevista**: respuesta oral o escrita; sugerencias concretas de estructura y vocabulario basadas en rúbrica transparente, no una supuesta evaluación integral por IA.
+- Progreso aislado en `vox_stage0_preview__coach30_v1`: solo guarda los resultados de ejercicios, no audios ni contenido privado. Exportar copia JSON. No modifica claves legacy ni producción. Una sesión completada habilita la siguiente **sin bloqueo de calendario**.
+- Biblioteca, diagnóstico, laboratorio Q4 y funciones anteriores se preservan como herramientas complementarias en sección plegable.
+
+### Pruebas y límites
+
+`node --test tests/coach.test.js`; `python tests/coach.browser_check.py` (Chromium simulado). Requiere Chrome Android real para verificar TTS/micrófono y actualización de caché. Revisión de voz de Chrome puede depender de Internet y no está garantizada en todos los dispositivos. La voz sintetizada no equivale a voces humanas espontáneas. La ruta de 30 sesiones es un *plan estructurado*, no garantía de B2 certificado.

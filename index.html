@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="src/ui/diagnostic.css">
   <link rel="stylesheet" href="src/ui/islands.css">
   <link rel="stylesheet" href="src/ui/phonetics.css">
+  <link rel="stylesheet" href="src/ui/coach.css">
   <link rel="stylesheet" href="src/ui/listening.css">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/svg+xml" href="icon.svg">
@@ -18,9 +19,10 @@
 </head>
 <body>
   <main class="app">
-    <aside role="status" aria-label="Entorno de pruebas" style="font:600 12px/1.5 system-ui,sans-serif;background:#26344a;color:#e1fff6;border:1px solid #5e8a93;border-radius:12px;padding:11px 13px;margin:10px 0 14px;">🧪 VOX 3.0 · PRUEBAS ANDROID — Esta versión no modifica la web pública. Tu progreso de pruebas se guarda separado y no se sincroniza automáticamente.</aside>
-    <header class="top"><div class="brand"><span class="brandmark">V</span><div>VOX <span style="color:var(--cyan)">SPEAK</span><div class="tiny" style="font-weight:450">English Lab • Stage 0 · Micrófono · diagnóstico técnico</div></div></div><span class="live">● Sin suscripción</span></header>
+    <aside role="status" aria-label="Entorno de pruebas" style="font:600 12px/1.5 system-ui,sans-serif;background:#26344a;color:#e1fff6;border:1px solid #5e8a93;border-radius:12px;padding:11px 13px;margin:10px 0 14px;">🧪 VOX 3.0 · Versión de estudio. Tu progreso se guarda en este navegador y no se sincroniza con VOX 2.1.</aside>
+    <header class="top"><div class="brand"><span class="brandmark">V</span><div>VOX <span style="color:var(--cyan)">SPEAK</span><div class="tiny" style="font-weight:450">English Coach · Ruta de 30 sesiones</div></div></div><span class="live">● Sin suscripción</span></header>
     <section class="screen active" id="home" aria-label="Inicio">
+      <div id="coach-home"></div>
       <div class="hero"><p class="eyebrow">Entrena para oportunidades reales</p><h1>Habla inglés.<br><span class="gradient">Abre puertas.</span></h1><p class="lead">Tu laboratorio personal de pronunciación, comprensión auditiva y entrevistas para roles de ventas, business development y fintech.</p></div>
       <div class="grid stats"><div class="stat"><div class="num" id="home-streak">0</div><span class="tiny">Días seguidos</span></div><div class="stat"><div class="num" id="home-practices">0</div><span class="tiny">Prácticas</span></div><div class="stat"><div class="num" id="home-accuracy">—</div><span class="tiny">Comprensión</span></div></div>
       <div class="card highlight"><div class="cardhead"><div><p class="eyebrow">Tu misión de hoy</p><h2>12 minutos que cuentan</h2><p class="muted" style="margin:0">No memorices solo respuestas: entrena para reconocer preguntas nuevas.</p></div><span class="spark">⚡</span></div><div class="progressline"><div id="mission-fill" class="fill"></div></div><p class="tiny" id="mission-status">0 de 3 actividades completadas</p><div id="tasks"></div><button class="btn primary full" id="start-session" style="margin-top:14px">▶ Continuar mi entrenamiento</button></div>
@@ -36,6 +38,20 @@
         <p class="fineprint">El informe técnico incluye código de error, tipo de navegador y estado de conexión, pero no incluye transcripciones ni audios. El diagnóstico es informativo, no un detector infalible.</p>
       </div>
       <div class="card stage0-cta" id="diagnostic-callout"><div class="cardhead"><div><p class="eyebrow">VOX Speak 3.0 · Evaluación inicial</p><h2>Descubre tu punto de partida</h2><p class="muted">22 tareas: preguntas inesperadas, recuperación de frases y respuestas orales. Sin nota B2 inventada.</p></div><span class="pill">30–40 min</span></div><div class="row" style="margin-top:14px"><button class="btn primary" data-go="diagnostic" id="home-diagnostic-cta">Iniciar diagnóstico →</button><span class="tiny" id="diagnostic-home-status">Disponible cuando quieras</span></div></div>
+    </section>
+    <section class="screen" id="coach" aria-label="Entrenador guiado de 30 sesiones">
+      <div id="coach-lesson">
+        <p class="eyebrow" id="coach-phase">Entrenamiento guiado</p>
+        <h1 id="coach-heading">Tu sesión de inglés.</h1>
+        <div class="coach-progress" aria-label="Progreso de la ruta"><span id="coach-lesson-bar" style="width:0%"></span></div>
+        <p id="coach-progress-text" class="coach-muted"></p>
+        <div class="coach-card" id="coach-content"></div>
+        <div id="coach-feedback" hidden aria-live="polite"></div>
+        <p id="coach-status" role="status" aria-live="polite"></p>
+        <button id="coach-primary" class="coach-main-action" hidden>Continuar →</button>
+        <div id="coach-controls"><button id="coach-exit" class="btn ghost">← Inicio</button><button id="coach-review" class="btn ghost">↻ Repasar errores</button></div>
+        <button id="coach-export" class="btn small ghost">Exportar mis avances</button>
+      </div>
     </section>
     <section class="screen" id="listen" aria-label="Listening impredecible">
       <p class="eyebrow">01 / Escucha activa · Nivel progresivo</p><h1>Entiende preguntas<br><span class="gradient">que no esperabas.</span></h1>
@@ -117,7 +133,7 @@
     </section>
     <p class="fineprint">VOX Speak Free · Sin cuentas ni pagos · Los ejercicios funcionan sin API propia; voz y reconocimiento requieren capacidades compatibles del navegador y el reconocimiento puede usar Internet.</p>
   </main>
-  <nav class="nav" aria-label="Menú principal"><div class="navinner"><button data-go="home" class="active"><span class="ico">⌂</span>Inicio</button><button data-go="listen"><span class="ico">🎧</span>Listening</button><button data-go="pronounce"><span class="ico">🎙</span>Hablar</button><button data-go="interview"><span class="ico">💼</span>Entrevista</button><button data-go="islands"><span class="ico">🏝️</span>Islas</button><button data-go="progress"><span class="ico">▥</span>Progreso</button></div></nav>
+  <nav class="nav" aria-label="Menú principal"><div class="navinner"><button data-go="home" class="active"><span class="ico">⌂</span>Inicio</button><button data-go="coach"><span class="ico">▶</span>Entrenar</button><button data-go="islands"><span class="ico">🏝️</span>Biblioteca</button><button data-go="progress"><span class="ico">▥</span>Progreso</button></div></nav>
   <script src="src/core/speech-diagnostics.js"></script>
   <script src="src/core/voice-capture.js"></script>
   <script src="src/legacy/training-data.js"></script>
@@ -127,6 +143,7 @@
   <script type="module" src="src/core/app.js"></script>
   <script type="module" src="src/phonetics/pronunciation-lab.js"></script>
   <script type="module" src="src/listening/listening-lab.js"></script>
+  <script type="module" src="src/coach/coach.js"></script>
   <script>if ("serviceWorker" in navigator) window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));</script>
 </body>
 </html>
