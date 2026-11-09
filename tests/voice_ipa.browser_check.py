@@ -24,7 +24,7 @@ with sync_playwright() as p:
  for name in ['src/ui/base.css','src/ui/islands.css','src/ui/ipa-guide.css']:
   page.add_style_tag(content=(root/name).read_text())
  page.add_script_tag(content=mock)
- for path in ['src/core/voice-capture.js','src/phonetics/ipa-guide.js','src/legacy/training-data.js','src/legacy/training.js','src/data/islands-data.js','src/legacy/islands.js']:
+ for path in ['src/core/voice-capture.js','src/phonetics/ipa-scenario-lexicon.js','src/phonetics/ipa-guide.js','src/legacy/training-data.js','src/legacy/training.js','src/data/islands-data.js','src/legacy/islands.js']:
   page.add_script_tag(content=(root/path).read_text())
  page.locator('#home [data-go="islands"]').first.evaluate('(el)=>el.click()')
  page.locator('.island-tile').first.click()
