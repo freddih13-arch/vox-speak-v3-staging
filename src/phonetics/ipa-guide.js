@@ -9,6 +9,17 @@ window.VoxIPA = (() => {
   const tokens=source=>String(source||'').match(/[a-z]+(?:['’][a-z]+)*/gi)||[];
   const lookup=word=>LEXICON[word.toLowerCase().replace('’',"'")]||null;
   const phonemes=source=>tokens(source).map(word=>({word,ipa:lookup(word)}));
+  const ARTICULATION=Object.freeze([
+    ['θ','/θ/ · think','Coloca suavemente la punta de la lengua entre los dientes y deja pasar aire, sin voz.'],
+    ['ð','/ð/ · this','Misma posición que /θ/, pero haz vibrar las cuerdas vocales.'],
+    ['ɹ','/ɹ/ · right','Retrae ligeramente la lengua sin tocar el paladar; no la hagas vibrar como una erre española.'],
+    ['æ','/æ/ · plan','Abre la boca más que para la e española; la lengua va hacia delante.'],
+    ['ɪ','/ɪ/ · ship','Vocal corta y relajada, diferente de la i española sostenida.'],
+    ['ɝ','/ɝ/ · work','Vocal central con r estadounidense, sin vibración de lengua.'],
+    ['v','/v/ · value','Acerca los dientes superiores al labio inferior y haz vibrar la voz.'],
+    ['ʃ','/ʃ/ · share','Dirige aire entre lengua y paladar, redondeando un poco los labios.'],
+    ['tʃ','/tʃ/ · change','Combina el cierre de t con la salida de aire de sh.']
+  ]);
   function render(parent,source,sayWord,{label='Guía de pronunciación · inglés estadounidense',compact=false}={}){
     if(!parent)return;
     parent.replaceChildren();parent.className='ipa-guide'+(compact?' ipa-compact':'');
@@ -23,6 +34,15 @@ window.VoxIPA = (() => {
       chip.append(top,bottom);row.append(chip);
     }
     parent.append(row);
+    const pronounced=phonemes(source).map(x=>x.ipa).filter(Boolean).join(' ');
+    const focus=ARTICULATION.filter(([symbol])=>pronounced.includes(symbol)).slice(0,3);
+    if(focus.length){
+      const guide=document.createElement('details');guide.className='ipa-articulation';
+      const summary=document.createElement('summary');summary.textContent='👄 Cómo articular '+focus.length+' sonidos de esta frase';guide.append(summary);
+      for(const [,name,tip] of focus){const p=document.createElement('p');p.textContent=name+' — '+tip;guide.append(p)}
+      const warning=document.createElement('p');warning.textContent='Son indicaciones de estudio de sonidos presentes en la frase; NO errores detectados en tu voz.';guide.append(warning);
+      parent.append(guide);
+    }
     const note=document.createElement('p');note.className='ipa-disclaimer';note.textContent='IPA de referencia (aproximado, acento US). Toca una palabra para oírla. No compara ni califica tu voz; pueden existir reducciones al hablar.';parent.append(note);
   }
   return Object.freeze({lookup,phonemes,render});
