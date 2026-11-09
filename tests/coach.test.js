@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {QUESTIONS,TOTAL_DAYS,planForDay,emptyState,finishStep,safeLoad,safeSave,progress,STORE_KEY} from '../src/coach/curriculum.js';
+import {QUESTIONS,TOTAL_DAYS,SCENARIOS,planForDay,emptyState,finishStep,safeLoad,safeSave,progress,STORE_KEY} from '../src/coach/curriculum.js';
 const legacy={PRON:[['I work in sales','Trabajo en ventas','Ritmo y claridad','Profesional']],INTERVIEW:[{q:'Tell me about yourself',role:'Recruiter',keys:['work'],model:'I work in sales',tip:'Experiencia'}]};
 class Store{constructor(){this.m=new Map()}getItem(k){return this.m.get(k)??null}setItem(k,v){this.m.set(k,String(v))}}
 test('30 sessions consume 60 different listening prompts with exactly 36/24 split',()=>{assert.equal(TOTAL_DAYS,30);assert.equal(QUESTIONS.length,60);assert.equal(new Set(QUESTIONS.map(q=>q.id)).size,60);assert.equal(QUESTIONS.filter(q=>q.domain==='professional').length,36);assert.equal(QUESTIONS.filter(q=>q.domain==='general').length,24);for(let i=0;i<30;i++){const plan=planForDay(i,legacy);assert.equal(plan.length,4);assert.equal(plan[0].type,'listen');assert.equal(plan[2].type,'phrase');assert.equal(plan[3].type,'interview')}});
@@ -7,3 +7,37 @@ test('session step is idempotent, skips cannot fake accuracy, supports 30 sessio
 test('only coach key changes; corrupted data read-only',()=>{const t=new Store();t.setItem('vox_speak_free_v1','keep-original');let s=emptyState();s=finishStep(s,{type:'listen',id:'p1-0',correct:false});assert.equal(safeSave(t,s),true);assert.equal(safeLoad(t).state.step,1);assert.equal(t.getItem('vox_speak_free_v1'),'keep-original');t.setItem(STORE_KEY,'{invalid');assert.equal(safeLoad(t).writable,false);assert.equal(t.getItem(STORE_KEY),'{invalid')});
 
 test('staging service worker protects other project caches',async()=>{const {readFileSync}=await import('node:fs');const sw=readFileSync(new URL('../sw.js',import.meta.url),'utf8');assert.match(sw,/startsWith\('vox-v3-'\)/);assert.ok(sw.includes('src/coach/coach.js'));assert.ok(!sw.includes('filter(k=>k!==CACHE)'))});
+
+test('30 unique progressive roleplays with 90 authored turns and 60/40 professional/daily mix',()=>{
+ assert.equal(SCENARIOS.length,30);
+ assert.equal(SCENARIOS.filter(s=>s.domain==='professional').length,18);
+ assert.equal(SCENARIOS.filter(s=>s.domain==='general').length,12);
+ assert.equal(new Set(SCENARIOS.map(s=>s.q)).size,30);
+ assert.equal(new Set(SCENARIOS.flatMap(s=>[s.q,s.followUp,s.challenge])).size,90);
+ for(let day=0;day<30;day++){
+  const roleplay=planForDay(day,legacy)[3].item;
+  assert.equal(roleplay,SCENARIOS[day]);
+  assert.ok(roleplay.keys.length>=2&&roleplay.tip&&roleplay.model);
+ }
+});
+test('study intensity 15/30/45 persists while old coach progress remains intact',()=>{
+ const store=new Store(),state=emptyState();
+ assert.equal(state.sessionMinutes,30);
+ for(const minutes of [15,30,45]){
+  state.sessionMinutes=minutes;
+  assert.equal(safeSave(store,state),true);
+  assert.equal(safeLoad(store).state.sessionMinutes,minutes);
+ }
+ const old={...state};delete old.sessionMinutes;
+ store.setItem(STORE_KEY,JSON.stringify(old));
+ assert.equal(safeLoad(store).state.sessionMinutes,30);
+ assert.equal(safeLoad(store).writable,true);
+});
+test('word comparison is not labelled as phonetic scoring',async()=>{
+ const {readFileSync}=await import('node:fs');
+ const script=readFileSync(new URL('../src/coach/voice-feedback.js',import.meta.url),'utf8');
+ assert.match(script,/NO|no es una medición de fonemas/i);
+ assert.doesNotMatch(script,/phonemeScore|pronunciationScore/);
+ const sw=readFileSync(new URL('../sw.js',import.meta.url),'utf8');
+ for(const path of ['src/coach/scenarios.js','src/coach/voice-feedback.js'])assert.ok(sw.includes(path));
+});

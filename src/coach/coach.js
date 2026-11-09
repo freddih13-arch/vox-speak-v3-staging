@@ -30,10 +30,14 @@ if(home&&screen&&legacy){
   const card=document.createElement('div');card.className='coach-card';
   const kicker=document.createElement('div');kicker.className='coach-kicker';kicker.textContent=done?'Ruta inicial completada':'Sesión '+idx+' de 30';card.append(kicker);
   const title=document.createElement('h2');title.textContent=done?'30 sesiones completadas':getDayTheme(state.day);title.style.marginTop='8px';card.append(title);
-  card.append(makeParagraph(done?'Ahora puedes repasar y volver a los ejercicios que más necesitas.':'Hoy trabajaremos cuatro pasos claros. Tiempo sugerido: 20–30 minutos, a tu ritmo.','coach-muted'));
-  const rail=document.createElement('div');rail.className='coach-progress';const fill=document.createElement('span');fill.style.width=((state.completed.length/TOTAL_DAYS)*100)+'%';rail.append(fill);card.append(rail);
+  card.append(makeParagraph(done?'Ahora puedes repasar y volver a los ejercicios que más necesitas.':'Hoy practicarás dos audios, una frase y una conversación en '+(state.sessionMinutes||30)+' minutos orientativos.','coach-muted'));
+  const duration=document.createElement('div');duration.className='coach-duration';duration.setAttribute('role','group');duration.setAttribute('aria-label','Duración de práctica');
+ duration.append(makeParagraph('ELIGE TU INTENSIDAD','coach-kicker'));
+ for(const minutes of [15,30,45]){const b=makeButton(minutes+' min',()=>{state.sessionMinutes=minutes;ensureSave();renderHome()},'btn ghost small');b.setAttribute('aria-pressed',String((state.sessionMinutes||30)===minutes));b.classList.toggle('selected',(state.sessionMinutes||30)===minutes);duration.append(b)}
+ card.append(duration);
+ const rail=document.createElement('div');rail.className='coach-progress';const fill=document.createElement('span');fill.style.width=((state.completed.length/TOTAL_DAYS)*100)+'%';rail.append(fill);card.append(rail);
   const pills=document.createElement('div');pills.className='coach-pills';for(const v of ['60 % profesional · 40 % cotidiano','Sin APIs de pago','Tu avance se guarda aquí']){const sp=document.createElement('span');sp.className='coach-pill';sp.textContent=v;pills.append(sp)}card.append(pills);
-  const steps=document.createElement('div');steps.className='coach-steps';for(const [i,label,tip] of [[1,'Comprende preguntas nuevas','Dos audios; identifica el significado.'],[2,'Imita una frase útil','Escucha, repite y graba si quieres.'],[3,'Responde en contexto','Practica una entrevista con feedback guiado.']]){const row=document.createElement('div');row.className='coach-step';const n=document.createElement('span');n.className='coach-index';n.textContent=i;const col=document.createElement('div');const b=document.createElement('b');b.textContent=label;col.append(b,makeParagraph(tip,'coach-muted'));row.append(n,col);steps.append(row)}card.append(steps);
+  const steps=document.createElement('div');steps.className='coach-steps';for(const [i,label,tip] of [[1,'Comprende preguntas nuevas','Dos audios; identifica el significado.'],[2,'Imita una frase útil','Escucha, repite y graba si quieres.'],[3,'Conversación guiada','Responde de una a tres preguntas con repreguntas reales.']]){const row=document.createElement('div');row.className='coach-step';const n=document.createElement('span');n.className='coach-index';n.textContent=i;const col=document.createElement('div');const b=document.createElement('b');b.textContent=label;col.append(b,makeParagraph(tip,'coach-muted'));row.append(n,col);steps.append(row)}card.append(steps);
   card.append(makeButton(done?'Repasar mis preguntas difíciles':state.step?'▶ Retomar mi sesión':'▶ Comenzar mi sesión',done?()=>{reviewItem=findReview();openCoach()}:openCoach,'coach-main-action'));home.append(card);
   const stats=document.createElement('div');stats.className='coach-card';stats.append(makeParagraph('TU AVANCE REAL','coach-kicker'));const grid=document.createElement('div');grid.className='coach-numbers';for(const [a,b] of [[p.done+'/30','sesiones'],[p.listenCount?Math.round(100*p.correct/p.listenCount)+'%':'—','comprensión'],[dueReviews(state),'por repasar']]){const box=document.createElement('div'),n=document.createElement('strong');n.textContent=a;box.append(n,makeParagraph(b));grid.append(box)}stats.append(grid);const review=makeButton('↻ Repasar preguntas difíciles',()=>{reviewItem=findReview();if(!reviewItem){openCoach();showStatus('Aún no tienes preguntas pendientes. Empieza una sesión para crear tus repasos.');return}openCoach()},'btn ghost full');review.style.marginTop='12px';stats.append(review);home.append(stats);
   const tools=document.createElement('details');tools.id='coach-home-tools';tools.className='coach-card';const summary=document.createElement('summary');summary.textContent='Explorar herramientas, diagnóstico y entrenamiento libre';tools.append(summary);const menu=document.createElement('div');menu.className='coach-tool-grid';for(const [dest,title] of [['listen','Listening libre'],['pronounce','Pronunciación'],['interview','Entrevista libre'],['islands','Islas de frases'],['diagnostic','Diagnóstico inicial'],['progress','Historial clásico']])menu.append(makeButton(title,()=>document.querySelector(`[data-go="${dest}"]`)?.click(),'btn ghost small'));tools.append(menu);if(technicalCard){technicalCard.style.display='';tools.append(technicalCard)}if(diagnosticCard){diagnosticCard.style.display='';tools.append(diagnosticCard)}home.append(tools);
@@ -75,28 +79,105 @@ if(home&&screen&&legacy){
   const starting=!window.VoxVoice.isActiveButton?.(mic);if(starting){ended=false;attemptedVoice=false}recording=starting;
   try{window.VoxVoice.toggle({button:mic,status,playback:play,recognize:true,lang:'en-US',onAudio:()=>{attemptedVoice=true;showStatus('Audio listo. Puedes reproducir tu grabación.');},onPartial:({text})=>{showStatus('Chrome va entendiendo (borrador): '+text);},onText:spoken=>{ended=true;attemptedVoice=true;output.value=spoken;output.dispatchEvent(new Event('input'));showStatus('Transcripción aproximada de Chrome, no calificación fonética. Revisa las palabras antes de continuar.');},onComplete:info=>{recording=false;if(info.audioReady)attemptedVoice=true;if(!ended&&!info.transcript&&info.recognitionError)showStatus('Chrome no transcribió ('+info.recognitionError+'). Tu audio se puede reproducir; puedes continuar sin puntuación.')}})}catch(e){recording=false;showStatus('No se pudo iniciar la grabación: '+e.message)}
  },'btn primary');container.append(mic);
+ const offline=makeButton('🎙 Solo grabar · sin transcribir',()=>{
+   if(!window.VoxVoice){showStatus('La captura no está disponible en este navegador.');return}
+   if(!window.VoxVoice.isActiveButton?.(offline))attemptedVoice=false;
+   try{window.VoxVoice.toggle({button:offline,status,playback:play,recognize:false,lang:'en-US',
+      onAudio:()=>{attemptedVoice=true;showStatus('Tu voz está lista: reprodúcela, compara y graba otra vez.');},
+      onComplete:info=>{if(info.audioReady)attemptedVoice=true;}
+   })}catch(e){showStatus('No se pudo iniciar: '+e.message)}
+ },'btn ghost');offline.classList.add('coach-record-only');container.append(offline);
+ container.append(makeParagraph('La transcripción de Chrome es opcional y puede usar Internet; «Solo grabar» conserva audio temporal. Ninguna opción evalúa tus fonemas.','coach-muted'));
  }
  function renderPhrase(task){const p=task.item;lesson.replaceChildren();lesson.append(makeParagraph('🎙 EXPRESIÓN · '+p.topic,'coach-kicker'));const phrase=makeParagraph(p.en,'coach-question');lesson.append(phrase,makeParagraph('Objetivo: pronunciar la frase, escuchar tu voz y repetirla hasta sentir más fluidez.','coach-muted'));
  addVoiceButton(p.en,lesson,.88);lesson.append(makeButton('🐢 Escuchar más lento',()=>speak(p.en,.72),'btn ghost'));
  if(window.VoxIPA){const phonetic=document.createElement('div');window.VoxIPA.render(phonetic,p.en,w=>speak(w,.72),{compact:true});lesson.append(phonetic);}
  const hidden=makeParagraph(p.es+' · Consejo: '+p.tip,'coach-muted');hidden.hidden=true;lesson.append(makeButton('👁 Mostrar significado y consejo',()=>{hidden.hidden=!hidden.hidden},'btn ghost'));lesson.append(hidden);
  const typed=document.createElement('textarea');typed.placeholder='Opcional: escribe lo que dijiste o lo que entendió Chrome.';typed.setAttribute('aria-label','Texto opcional de la frase pronunciada');lesson.append(typed);captureSpeech(p.en,lesson,typed);
- const mark=makeButton('✓ Ya la practiqué →',()=>{answered=true;const text=typed.value.trim();if(text){const expected=p.en.toLowerCase().match(/[a-z']+/g)||[],actual=text.toLowerCase().match(/[a-z']+/g)||[];const matched=expected.filter(w=>actual.includes(w)).length;showFeedback(['Chrome o tu texto coincidió con '+matched+' de '+expected.length+' palabras esperadas.','Esta es una comparación de palabras, NO una nota de pronunciación.','Vuelve a escuchar y repite el fragmento más difícil.'])}else{showFeedback(['Práctica registrada por ti. Sin transcripción no se asigna nota.','Escucha el modelo otra vez, repite y utiliza la frase en una situación propia.'])}nextButton({type:'phrase',id:task.id,voiceAttempt:attemptedVoice,textProvided:!!text});},'coach-main-action');lesson.append(mark);
+ const mark=makeButton('✓ Revisar y continuar →',()=>{answered=true;const text=typed.value.trim();if(text){showFeedback(['Comparación textual orientativa: estas palabras fueron reconocidas o escritas; NO demuestra precisión fonética.','Practica las palabras que no coinciden y repite la frase completa con ritmo natural.']);if(window.VoxCoachFeedback){const compare=document.createElement('div');window.VoxCoachFeedback.render(compare,p.en,text,w=>speak(w,.72));feedback.append(compare)}}else{showFeedback(['Práctica declarada sin transcripción. Compara tu voz con el modelo y repite hasta reconocer las diferencias.','Escucha las palabras IPA y practica el ritmo; no se asigna una nota inventada.'])}nextButton({type:'phrase',id:task.id,voiceAttempt:attemptedVoice,textProvided:!!text});},'coach-main-action');lesson.append(mark);
  }
- function renderInterview(task){const p=task.item;lesson.replaceChildren();lesson.append(makeParagraph('💼 ENTREVISTA · '+p.role,'coach-kicker'),makeParagraph('Escucha la pregunta, luego responde en voz alta. Puedes apoyarte en texto si Chrome no transcribe.','coach-muted'));
- addVoiceButton(p.q,lesson,.9);const question=makeParagraph(p.q,'coach-question');question.hidden=true;lesson.append(question);const ipa=document.createElement('div');ipa.hidden=true;lesson.append(ipa);lesson.append(makeButton('👁 Mostrar pregunta',()=>{question.hidden=!question.hidden;ipa.hidden=question.hidden;if(!ipa.hidden&&window.VoxIPA)window.VoxIPA.render(ipa,p.q,w=>speak(w,.72),{compact:true})},'btn ghost'));
- const typed=document.createElement('textarea');typed.placeholder='Escribe una respuesta propia o dicta con el micrófono. Ejemplo: I managed a B2B pipeline by...';typed.setAttribute('aria-label','Mi respuesta a la entrevista');lesson.append(typed);captureSpeech(p.q,lesson,typed);
- lesson.append(makeButton('🔎 Revisar mi respuesta',()=>{const content=typed.value.trim();if(!content){showFeedback(['Habla primero y escucha la grabación. Si Chrome no transcribe, puedes escribir una respuesta o comparar tu respuesta oral con el modelo.','Sin texto no hay revisión automática.']);nextButton({type:'interview',id:task.id,mode:'self-check'});return}
- const lower=content.toLowerCase(),terms=p.keys||[],hit=terms.filter(w=>lower.includes(w.toLowerCase()));const wordcount=content.split(/\s+/).length;
- showFeedback(['Ideas incluidas: '+(hit.join(', ')||'No se detectaron las palabras guía; también puedes expresarlas con sinónimos.')+'.','Extensión: '+wordcount+' palabras. '+(wordcount<18?'Prueba incluir situación, acción y resultado concreto.':'Buen punto de partida; revisa si incluyes un resultado verificable.'),'Sugerencia: '+p.tip,'Modelo para comparar, no memorizar: '+p.model,'Esta revisión de contenido es orientativa; no califica pronunciación, gramática integral ni nivel CEFR.']);nextButton({type:'interview',id:task.id,mode:'text-guided',wordcount});},'coach-main-action'));
- lesson.append(makeButton('💡 Ver ejemplo sin calificación',()=>showFeedback(['Referencia: '+p.model,'Pistas: '+p.tip,'Escúchala y luego contesta con tu experiencia real.']),'btn ghost'));
+
+ function renderInterview(task){
+   const p=task.item,limit=({15:1,30:2,45:3})[state.sessionMinutes]||2;
+   const questions=[p.q,p.followUp||p.q,p.challenge||p.followUp||p.q];
+   let round=0,rounds=[],usedModel=false;
+   function showRound(){
+     window.VoxVoice?.cancel();voiceStop();attemptedVoice=false;
+     feedback.hidden=true;feedback.replaceChildren();primary.hidden=true;lesson.replaceChildren();
+     const prompt=questions[round];
+     lesson.append(makeParagraph((p.domain==='general'?'🌍 CONVERSACIÓN':'💼 ROLEPLAY')+' · '+p.topic+' · '+(p.level||'B1–B2'),'coach-kicker'));
+     lesson.append(makeParagraph('Interlocutor: '+p.role+' · Ronda '+(round+1)+' de '+limit,'coach-muted'));
+     lesson.append(makeParagraph(round===0?'Responde con una idea clara y un ejemplo propio.':round===1?'Repregunta: amplía la respuesta sin memorizar el modelo.':'Cambio inesperado: negocia, aclara o reformula con tus palabras.','coach-muted'));
+     addVoiceButton(prompt,lesson,.9);
+     const question=makeParagraph(prompt,'coach-question');question.hidden=true;lesson.append(question);
+     const ipa=document.createElement('div');ipa.hidden=true;lesson.append(ipa);
+     lesson.append(makeButton('👁 Mostrar pregunta e IPA',()=>{
+       question.hidden=!question.hidden;ipa.hidden=question.hidden;
+       if(!ipa.hidden&&window.VoxIPA)window.VoxIPA.render(ipa,prompt,w=>speak(w,.72),{compact:true});
+     },'btn ghost'));
+     const typed=document.createElement('textarea');typed.placeholder='Habla primero. Opcional: dicta con Chrome o escribe tu respuesta en inglés.';typed.setAttribute('aria-label','Respuesta propia · ronda '+(round+1));lesson.append(typed);
+     captureSpeech(prompt,lesson,typed);
+     const guide=document.createElement('details');guide.className='coach-rubric';
+     const summary=document.createElement('summary');summary.textContent='Estructura sugerida (abrir si necesitas ayuda)';guide.append(summary);
+     guide.append(makeParagraph('1. Respuesta directa. 2. Razón o ejemplo específico. 3. Próximo paso o pregunta. '+p.tip,'coach-muted'));
+     if(p.chunks?.length)guide.append(makeParagraph('Expresiones útiles: '+p.chunks.join(' · '),'coach-muted'));
+     lesson.append(guide);
+     lesson.append(makeButton('🔎 Revisar mi respuesta',()=>{
+       const content=typed.value.trim(),words=content?content.split(/\s+/).filter(Boolean).length:0;
+       rounds[round]={words,voiceAttempt:attemptedVoice,textProvided:!!content,usedModel};
+       const matches=round===0&&content?p.keys.filter(w=>content.toLowerCase().includes(w.toLowerCase())):[];
+       const notes=content?[
+         'Respuesta: '+words+' palabras de texto proporcionado (transcripción corregible, no una nota de inglés).',
+         round===0?'Ideas guía presentes: '+(matches.join(', ')||'No se detectaron términos exactos; también sirven sinónimos.')+'.':'Comprueba si respondiste la repregunta con una idea nueva y un ejemplo.',
+         'Autoevaluación: ¿respondí directamente, expliqué por qué y mantuve la conversación?',
+         'Siguiente mejora: '+p.tip
+       ]:[
+         attemptedVoice?'Grabación realizada. Escucha tu audio y compara con la pregunta antes de seguir.':'Sin grabación ni respuesta escrita. Este paso quedará registrado como omitido, nunca como aprobado.',
+         'Puedes intentarlo otra vez. El sistema no atribuye nivel ni nota fonética.'
+       ];
+       showFeedback(notes);
+       if(round+1<limit){primary.hidden=false;primary.textContent='Continuar al siguiente reto →';primary.onclick=()=>{round++;usedModel=false;showRound()};}
+       else nextButton({type:'interview',id:task.id,mode:'guided-dialogue',rounds:limit,voiceRounds:rounds.filter(r=>r?.voiceAttempt).length,textRounds:rounds.filter(r=>r?.textProvided).length,assisted:rounds.some(r=>r?.usedModel)},'Terminar conversación →');
+     },'coach-main-action'));
+     lesson.append(makeButton('💡 Ver referencia (sin nota)',()=>{
+       usedModel=true;showFeedback(['Referencia para estructurar tu respuesta: '+p.model,
+         'No es un texto obligatorio. Utiliza tu experiencia y responde con tus propias palabras.',
+         'Pistas: '+p.tip]);
+     },'btn ghost'));
+     lesson.append(makeParagraph('Esta práctica NO certifica conversación B2, gramática integral ni pronunciación automática.','coach-muted'));
+   }
+   showRound();
  }
- function renderReview(){const question=QUESTIONS.find(q=>q.id===reviewItem.id);if(!question){reviewItem=null;render();return}
- $('coach-phase').textContent='Repaso de errores';$('coach-heading').textContent='Vuelve a escuchar lo difícil';progressEl.textContent=dueReviews(state)+' pendientes de repaso';$('coach-lesson-bar').style.width=(state.completed.length/30*100)+'%';lesson.replaceChildren();lesson.append(makeParagraph('No buscamos memorizar la respuesta: escucha de nuevo, identifica la intención y luego vuelve a intentarlo.','coach-muted'));
- addVoiceButton(question.question,lesson,.91);const answer=makeParagraph('Significa: '+question.correct+' · '+question.note,'coach-muted');answer.hidden=true;lesson.append(makeButton('👁 Ver significado',()=>{answer.hidden=!answer.hidden},'btn ghost'));lesson.append(answer);
- lesson.append(makeButton('✓ Ahora la entendí',()=>{setReview(question.id,true);reviewItem=findReview();render()},'coach-main-action'));
- lesson.append(makeButton('↻ Necesito volver a repasar',()=>{setReview(question.id,false);reviewItem=findReview();render()},'btn ghost'));
- lesson.append(makeButton('Volver a mi sesión',()=>{reviewItem=null;render()},'btn ghost'));
+ function renderReview(){
+   const question=QUESTIONS.find(q=>q.id===reviewItem.id);if(!question){reviewItem=null;render();return}
+   $('coach-phase').textContent='Repaso activo de comprensión';
+   $('coach-heading').textContent='Demuestra que ahora lo entiendes';
+   progressEl.textContent=dueReviews(state)+' preguntas pendientes de recuperar';
+   $('coach-lesson-bar').style.width=(state.completed.length/30*100)+'%';
+   lesson.replaceChildren();
+   lesson.append(makeParagraph('Escucha SIN leer, identifica la intención y elige la respuesta. Recordar una explicación no equivale a haber comprendido el audio.','coach-muted'));
+   let started=false,answered=false;
+   const options=document.createElement('div');
+   const choices=[{text:question.correct,correct:true},...question.distractors.map(text=>({text,correct:false}))];
+   const seed=[...question.id].reduce((sum,c)=>sum+c.charCodeAt(0),0);
+   for(let i=choices.length-1;i>0;i--){const k=(seed+11*i)%(i+1);[choices[i],choices[k]]=[choices[k],choices[i]]}
+   lesson.append(makeButton('🔊 Escuchar pregunta',()=>speak(question.question,.9,()=>{started=true;if(!answered)options.querySelectorAll('button').forEach(b=>b.disabled=false)}),'btn violet'));
+   for(const item of choices){const b=makeButton(item.text,()=>{
+     if(!started||answered)return;answered=true;
+     for(const button of options.querySelectorAll('button'))button.disabled=true;
+     showFeedback([item.correct?'✓ Recuperaste la intención sin mirar.':'La interpretación correcta era: '+question.correct,'La pregunta fue: '+question.question,'Pista: '+question.note]);
+     primary.hidden=false;primary.textContent=item.correct?'Cerrar repaso correcto →':'Programar otro repaso →';
+     primary.onclick=()=>{setReview(question.id,item.correct);reviewItem=findReview();render()};
+   },'coach-answer');b.disabled=true;options.append(b)}
+   lesson.append(options);
+   lesson.append(makeButton('👁 Revelar texto (sin darlo por aprendido)',()=>{
+     if(answered)return;answered=true;
+     options.querySelectorAll('button').forEach(b=>b.disabled=true);
+     showFeedback(['Pregunta: '+question.question,'Significado: '+question.correct,'Pista: '+question.note,'Se programará otro repaso; revelar una respuesta NO significa recordarla.']);
+     primary.hidden=false;primary.textContent='Volver a repasar después →';
+     primary.onclick=()=>{setReview(question.id,false);reviewItem=findReview();render()};
+   },'btn ghost'));
+   lesson.append(makeButton('Volver a mi sesión',()=>{reviewItem=null;render()},'btn ghost'));
  }
  function renderCompleted(){lesson.replaceChildren();$('coach-phase').textContent='Ruta completada · 30/30';$('coach-heading').textContent='30 sesiones terminadas';$('coach-lesson-bar').style.width='100%';progressEl.textContent='Has registrado '+state.answers.length+' actividades. El aprendizaje continúa con los repasos.';
  lesson.append(makeParagraph('Completaste las 30 sesiones guiadas. No significa un B2 certificado: ahora practica con preguntas nuevas, casos reales y repasos.','coach-muted'));
