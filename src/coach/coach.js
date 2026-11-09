@@ -148,12 +148,36 @@ if(home&&screen&&legacy){
    }
    showRound();
  }
- function renderReview(){const question=QUESTIONS.find(q=>q.id===reviewItem.id);if(!question){reviewItem=null;render();return}
- $('coach-phase').textContent='Repaso de errores';$('coach-heading').textContent='Vuelve a escuchar lo difícil';progressEl.textContent=dueReviews(state)+' pendientes de repaso';$('coach-lesson-bar').style.width=(state.completed.length/30*100)+'%';lesson.replaceChildren();lesson.append(makeParagraph('No buscamos memorizar la respuesta: escucha de nuevo, identifica la intención y luego vuelve a intentarlo.','coach-muted'));
- addVoiceButton(question.question,lesson,.91);const answer=makeParagraph('Significa: '+question.correct+' · '+question.note,'coach-muted');answer.hidden=true;lesson.append(makeButton('👁 Ver significado',()=>{answer.hidden=!answer.hidden},'btn ghost'));lesson.append(answer);
- lesson.append(makeButton('✓ Ahora la entendí',()=>{setReview(question.id,true);reviewItem=findReview();render()},'coach-main-action'));
- lesson.append(makeButton('↻ Necesito volver a repasar',()=>{setReview(question.id,false);reviewItem=findReview();render()},'btn ghost'));
- lesson.append(makeButton('Volver a mi sesión',()=>{reviewItem=null;render()},'btn ghost'));
+ function renderReview(){
+   const question=QUESTIONS.find(q=>q.id===reviewItem.id);if(!question){reviewItem=null;render();return}
+   $('coach-phase').textContent='Repaso activo de comprensión';
+   $('coach-heading').textContent='Demuestra que ahora lo entiendes';
+   progressEl.textContent=dueReviews(state)+' preguntas pendientes de recuperar';
+   $('coach-lesson-bar').style.width=(state.completed.length/30*100)+'%';
+   lesson.replaceChildren();
+   lesson.append(makeParagraph('Escucha SIN leer, identifica la intención y elige la respuesta. Recordar una explicación no equivale a haber comprendido el audio.','coach-muted'));
+   let started=false,answered=false;
+   const options=document.createElement('div');
+   const choices=[{text:question.correct,correct:true},...question.distractors.map(text=>({text,correct:false}))];
+   const seed=[...question.id].reduce((sum,c)=>sum+c.charCodeAt(0),0);
+   for(let i=choices.length-1;i>0;i--){const k=(seed+11*i)%(i+1);[choices[i],choices[k]]=[choices[k],choices[i]]}
+   lesson.append(makeButton('🔊 Escuchar pregunta',()=>speak(question.question,.9,()=>{started=true;if(!answered)options.querySelectorAll('button').forEach(b=>b.disabled=false)}),'btn violet'));
+   for(const item of choices){const b=makeButton(item.text,()=>{
+     if(!started||answered)return;answered=true;
+     for(const button of options.querySelectorAll('button'))button.disabled=true;
+     showFeedback([item.correct?'✓ Recuperaste la intención sin mirar.':'La interpretación correcta era: '+question.correct,'La pregunta fue: '+question.question,'Pista: '+question.note]);
+     primary.hidden=false;primary.textContent=item.correct?'Cerrar repaso correcto →':'Programar otro repaso →';
+     primary.onclick=()=>{setReview(question.id,item.correct);reviewItem=findReview();render()};
+   },'coach-answer');b.disabled=true;options.append(b)}
+   lesson.append(options);
+   lesson.append(makeButton('👁 Revelar texto (sin darlo por aprendido)',()=>{
+     if(answered)return;answered=true;
+     options.querySelectorAll('button').forEach(b=>b.disabled=true);
+     showFeedback(['Pregunta: '+question.question,'Significado: '+question.correct,'Pista: '+question.note,'Se programará otro repaso; revelar una respuesta NO significa recordarla.']);
+     primary.hidden=false;primary.textContent='Volver a repasar después →';
+     primary.onclick=()=>{setReview(question.id,false);reviewItem=findReview();render()};
+   },'btn ghost'));
+   lesson.append(makeButton('Volver a mi sesión',()=>{reviewItem=null;render()},'btn ghost'));
  }
  function renderCompleted(){lesson.replaceChildren();$('coach-phase').textContent='Ruta completada · 30/30';$('coach-heading').textContent='30 sesiones terminadas';$('coach-lesson-bar').style.width='100%';progressEl.textContent='Has registrado '+state.answers.length+' actividades. El aprendizaje continúa con los repasos.';
  lesson.append(makeParagraph('Completaste las 30 sesiones guiadas. No significa un B2 certificado: ahora practica con preguntas nuevas, casos reales y repasos.','coach-muted'));
