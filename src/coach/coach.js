@@ -96,13 +96,57 @@ if(home&&screen&&legacy){
  const typed=document.createElement('textarea');typed.placeholder='Opcional: escribe lo que dijiste o lo que entendió Chrome.';typed.setAttribute('aria-label','Texto opcional de la frase pronunciada');lesson.append(typed);captureSpeech(p.en,lesson,typed);
  const mark=makeButton('✓ Revisar y continuar →',()=>{answered=true;const text=typed.value.trim();if(text){showFeedback(['Comparación textual orientativa: estas palabras fueron reconocidas o escritas; NO demuestra precisión fonética.','Practica las palabras que no coinciden y repite la frase completa con ritmo natural.']);if(window.VoxCoachFeedback){const compare=document.createElement('div');window.VoxCoachFeedback.render(compare,p.en,text,w=>speak(w,.72));feedback.append(compare)}}else{showFeedback(['Práctica declarada sin transcripción. Compara tu voz con el modelo y repite hasta reconocer las diferencias.','Escucha las palabras IPA y practica el ritmo; no se asigna una nota inventada.'])}nextButton({type:'phrase',id:task.id,voiceAttempt:attemptedVoice,textProvided:!!text});},'coach-main-action');lesson.append(mark);
  }
- function renderInterview(task){const p=task.item;lesson.replaceChildren();lesson.append(makeParagraph('💼 ENTREVISTA · '+p.role,'coach-kicker'),makeParagraph('Escucha la pregunta, luego responde en voz alta. Puedes apoyarte en texto si Chrome no transcribe.','coach-muted'));
- addVoiceButton(p.q,lesson,.9);const question=makeParagraph(p.q,'coach-question');question.hidden=true;lesson.append(question);const ipa=document.createElement('div');ipa.hidden=true;lesson.append(ipa);lesson.append(makeButton('👁 Mostrar pregunta',()=>{question.hidden=!question.hidden;ipa.hidden=question.hidden;if(!ipa.hidden&&window.VoxIPA)window.VoxIPA.render(ipa,p.q,w=>speak(w,.72),{compact:true})},'btn ghost'));
- const typed=document.createElement('textarea');typed.placeholder='Escribe una respuesta propia o dicta con el micrófono. Ejemplo: I managed a B2B pipeline by...';typed.setAttribute('aria-label','Mi respuesta a la entrevista');lesson.append(typed);captureSpeech(p.q,lesson,typed);
- lesson.append(makeButton('🔎 Revisar mi respuesta',()=>{const content=typed.value.trim();if(!content){showFeedback(['Habla primero y escucha la grabación. Si Chrome no transcribe, puedes escribir una respuesta o comparar tu respuesta oral con el modelo.','Sin texto no hay revisión automática.']);nextButton({type:'interview',id:task.id,mode:'self-check'});return}
- const lower=content.toLowerCase(),terms=p.keys||[],hit=terms.filter(w=>lower.includes(w.toLowerCase()));const wordcount=content.split(/\s+/).length;
- showFeedback(['Ideas incluidas: '+(hit.join(', ')||'No se detectaron las palabras guía; también puedes expresarlas con sinónimos.')+'.','Extensión: '+wordcount+' palabras. '+(wordcount<18?'Prueba incluir situación, acción y resultado concreto.':'Buen punto de partida; revisa si incluyes un resultado verificable.'),'Sugerencia: '+p.tip,'Modelo para comparar, no memorizar: '+p.model,'Esta revisión de contenido es orientativa; no califica pronunciación, gramática integral ni nivel CEFR.']);nextButton({type:'interview',id:task.id,mode:'text-guided',wordcount});},'coach-main-action'));
- lesson.append(makeButton('💡 Ver ejemplo sin calificación',()=>showFeedback(['Referencia: '+p.model,'Pistas: '+p.tip,'Escúchala y luego contesta con tu experiencia real.']),'btn ghost'));
+
+ function renderInterview(task){
+   const p=task.item,limit=({15:1,30:2,45:3})[state.sessionMinutes]||2;
+   const questions=[p.q,p.followUp||p.q,p.challenge||p.followUp||p.q];
+   let round=0,rounds=[],usedModel=false;
+   function showRound(){
+     window.VoxVoice?.cancel();voiceStop();attemptedVoice=false;
+     feedback.hidden=true;feedback.replaceChildren();primary.hidden=true;lesson.replaceChildren();
+     const prompt=questions[round];
+     lesson.append(makeParagraph((p.domain==='general'?'🌍 CONVERSACIÓN':'💼 ROLEPLAY')+' · '+p.topic+' · '+(p.level||'B1–B2'),'coach-kicker'));
+     lesson.append(makeParagraph('Interlocutor: '+p.role+' · Ronda '+(round+1)+' de '+limit,'coach-muted'));
+     lesson.append(makeParagraph(round===0?'Responde con una idea clara y un ejemplo propio.':round===1?'Repregunta: amplía la respuesta sin memorizar el modelo.':'Cambio inesperado: negocia, aclara o reformula con tus palabras.','coach-muted'));
+     addVoiceButton(prompt,lesson,.9);
+     const question=makeParagraph(prompt,'coach-question');question.hidden=true;lesson.append(question);
+     const ipa=document.createElement('div');ipa.hidden=true;lesson.append(ipa);
+     lesson.append(makeButton('👁 Mostrar pregunta e IPA',()=>{
+       question.hidden=!question.hidden;ipa.hidden=question.hidden;
+       if(!ipa.hidden&&window.VoxIPA)window.VoxIPA.render(ipa,prompt,w=>speak(w,.72),{compact:true});
+     },'btn ghost'));
+     const typed=document.createElement('textarea');typed.placeholder='Habla primero. Opcional: dicta con Chrome o escribe tu respuesta en inglés.';typed.setAttribute('aria-label','Respuesta propia · ronda '+(round+1));lesson.append(typed);
+     captureSpeech(prompt,lesson,typed);
+     const guide=document.createElement('details');guide.className='coach-rubric';
+     const summary=document.createElement('summary');summary.textContent='Estructura sugerida (abrir si necesitas ayuda)';guide.append(summary);
+     guide.append(makeParagraph('1. Respuesta directa. 2. Razón o ejemplo específico. 3. Próximo paso o pregunta. '+p.tip,'coach-muted'));
+     if(p.chunks?.length)guide.append(makeParagraph('Expresiones útiles: '+p.chunks.join(' · '),'coach-muted'));
+     lesson.append(guide);
+     lesson.append(makeButton('🔎 Revisar mi respuesta',()=>{
+       const content=typed.value.trim(),words=content?content.split(/\s+/).filter(Boolean).length:0;
+       rounds[round]={words,voiceAttempt:attemptedVoice,textProvided:!!content,usedModel};
+       const matches=round===0&&content?p.keys.filter(w=>content.toLowerCase().includes(w.toLowerCase())):[];
+       const notes=content?[
+         'Respuesta: '+words+' palabras de texto proporcionado (transcripción corregible, no una nota de inglés).',
+         round===0?'Ideas guía presentes: '+(matches.join(', ')||'No se detectaron términos exactos; también sirven sinónimos.')+'.':'Comprueba si respondiste la repregunta con una idea nueva y un ejemplo.',
+         'Autoevaluación: ¿respondí directamente, expliqué por qué y mantuve la conversación?',
+         'Siguiente mejora: '+p.tip
+       ]:[
+         attemptedVoice?'Grabación realizada. Escucha tu audio y compara con la pregunta antes de seguir.':'Sin grabación ni respuesta escrita. Este paso quedará registrado como omitido, nunca como aprobado.',
+         'Puedes intentarlo otra vez. El sistema no atribuye nivel ni nota fonética.'
+       ];
+       showFeedback(notes);
+       if(round+1<limit){primary.hidden=false;primary.textContent='Continuar al siguiente reto →';primary.onclick=()=>{round++;usedModel=false;showRound()};}
+       else nextButton({type:'interview',id:task.id,mode:'guided-dialogue',rounds:limit,voiceRounds:rounds.filter(r=>r?.voiceAttempt).length,textRounds:rounds.filter(r=>r?.textProvided).length,assisted:rounds.some(r=>r?.usedModel)},'Terminar conversación →');
+     },'coach-main-action'));
+     lesson.append(makeButton('💡 Ver referencia (sin nota)',()=>{
+       usedModel=true;showFeedback(['Referencia para estructurar tu respuesta: '+p.model,
+         'No es un texto obligatorio. Utiliza tu experiencia y responde con tus propias palabras.',
+         'Pistas: '+p.tip]);
+     },'btn ghost'));
+     lesson.append(makeParagraph('Esta práctica NO certifica conversación B2, gramática integral ni pronunciación automática.','coach-muted'));
+   }
+   showRound();
  }
  function renderReview(){const question=QUESTIONS.find(q=>q.id===reviewItem.id);if(!question){reviewItem=null;render();return}
  $('coach-phase').textContent='Repaso de errores';$('coach-heading').textContent='Vuelve a escuchar lo difícil';progressEl.textContent=dueReviews(state)+' pendientes de repaso';$('coach-lesson-bar').style.width=(state.completed.length/30*100)+'%';lesson.replaceChildren();lesson.append(makeParagraph('No buscamos memorizar la respuesta: escucha de nuevo, identifica la intención y luego vuelve a intentarlo.','coach-muted'));
