@@ -27,7 +27,7 @@ with sync_playwright() as p:
   for path in ['src/ui/base.css','src/ui/coach.css','src/ui/listening.css','src/ui/islands.css','src/ui/diagnostic.css','src/ui/phonetics.css','src/ui/ipa-guide.css']:
    page.add_style_tag(content=(root/path).read_text())
   page.add_script_tag(content="Object.defineProperty(window,'localStorage',{configurable:true,value:{_m:new Map(),getItem(k){return this._m.get(k)??null},setItem(k,v){this._m.set(k,String(v))},removeItem(k){this._m.delete(k)}}});")
-  for path in ['src/core/voice-capture.js','src/phonetics/ipa-guide.js','src/coach/voice-feedback.js','src/legacy/training-data.js','src/legacy/training.js','src/data/islands-data.js','src/legacy/islands.js']:
+  for path in ['src/core/voice-capture.js','src/phonetics/ipa-scenario-lexicon.js','src/phonetics/ipa-guide.js','src/coach/voice-feedback.js','src/legacy/training-data.js','src/legacy/training.js','src/data/islands-data.js','src/legacy/islands.js']:
    page.add_script_tag(content=(root/path).read_text())
   page.add_script_tag(content=bundle)
   page.wait_for_function('window.VoxCoach!==undefined',timeout=2000)
