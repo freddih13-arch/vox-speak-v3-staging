@@ -52,12 +52,26 @@ with sync_playwright() as p:
   page.locator('#start-session').evaluate('(el)=>el.click()');assert 'PASO 2/4' in page.locator('#coach-phase').inner_text()
   page.get_by_role('button',name='👁 Ver texto (sin nota)').click();page.locator('#coach-primary').click()
   assert 'PASO 3/4' in page.locator('#coach-phase').inner_text()
+  # Voice fallback: local recording remains playable without Chrome transcription.
+  offline=page.locator('#coach-content .coach-record-only')
+  offline.click()
+  page.wait_for_function('document.querySelector("#coach-content .coach-record-only").textContent.includes("Detener")')
+  offline.click()
+  page.locator('#coach-content .playback audio').wait_for()
+  assert 'Grabación' in page.locator('#coach-status').inner_text() or 'voz' in page.locator('#coach-status').inner_text().lower()
   page.get_by_role('button',name='🔊 Escuchar / repetir').click();page.locator('#coach-content textarea').fill('I work in sales');page.get_by_role('button',name='✓ Revisar y continuar →').click();assert page.locator('#coach-feedback .coach-voice-compare').count()==1;page.locator('#coach-primary').click()
   assert 'PASO 4/4' in page.locator('#coach-phase').inner_text()
   page.locator('#coach-content textarea').fill('I helped the team improve its sales process and we measured business results.');page.get_by_role('button',name='🔎 Revisar mi respuesta').click();assert page.locator('#coach-feedback').is_visible();page.locator('#coach-primary').click();assert 'Ronda 2 de 2' in page.locator('#coach-content').inner_text();page.locator('#coach-content textarea').fill('We measured impact through conversion and repeat business.');page.get_by_role('button',name='🔎 Revisar mi respuesta').click();page.locator('#coach-primary').click()
   assert 'SESIÓN 2 DE 30' in page.locator('#coach-phase').inner_text()
   page.locator('#coach-exit').click();assert '1/30' in page.locator('#coach-home').inner_text()
   assert page.locator('#coach-home-tools #speech-tech-card').count()==1,'tech tools lost on rerender'
+  # Choice persists using the existing version 1 state without progress loss.
+  page.locator('#coach-home .coach-duration button').filter(has_text='15 min').click()
+  assert page.evaluate('JSON.parse(localStorage.getItem("vox_stage0_preview__coach30_v1")).sessionMinutes')==15
+  page.locator('#coach-home .coach-duration button').filter(has_text='45 min').click()
+  assert page.evaluate('JSON.parse(localStorage.getItem("vox_stage0_preview__coach30_v1")).sessionMinutes')==45
+  assert page.locator('#coach-home .coach-main-action').is_visible()
+
   assert not errors,errors
   print(json.dumps({'pass':True,'checks':['visible main CTA works','playback gated on speech start','postanswer replay repeatable','step preserved across exit and reentry','reveal no score','phrase and interview workflow','session completion','technical section persists','runtime no errors']},ensure_ascii=False))
   browser.close()
