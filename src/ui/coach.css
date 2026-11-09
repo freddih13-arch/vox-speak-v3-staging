@@ -11,3 +11,20 @@
 #coach-home .coach-numbers{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}#coach-home .coach-numbers div{padding:12px 9px;text-align:center;background:#192638;border-radius:13px}#coach-home .coach-numbers strong{display:block;font-size:1.26rem;color:#b8ffec}#coach-home .coach-numbers small{color:#b4bfd1}
 #coach-review-list{display:grid;gap:9px;margin-top:14px}#coach-review-list button{min-height:50px;text-align:left;padding:11px;background:#1b2c3e;color:var(--text);border:1px solid #486376;border-radius:13px}
 @media(max-width:410px){.coach-card{padding:16px}.coach-row{align-items:flex-start}#coach-lesson .coach-actions{grid-template-columns:1fr}#coach-home .coach-numbers{gap:5px}#coach-home .coach-numbers div{padding:10px 5px}}
+
+/* 30-day guided conversation and accessible word-feedback controls */
+.coach-duration{display:flex;gap:8px;flex-wrap:wrap;margin:15px 0;padding:12px 0;border-top:1px solid #405269;border-bottom:1px solid #405269}
+.coach-duration .coach-kicker{width:100%;margin:0 0 2px}
+.coach-duration button{flex:1;min-width:73px;min-height:42px;border-radius:11px}
+.coach-duration button.selected,.coach-duration button[aria-pressed="true"]{border:2px solid #76e3cb;background:#24483f;color:#e7fff7}
+.coach-record-only{width:100%;min-height:46px;margin-top:9px}
+.coach-rubric{margin:13px 0;padding:11px 13px;border:1px solid #45637a;border-radius:13px;background:#1b2b3c}
+.coach-rubric summary{cursor:pointer;font-weight:700;min-height:32px}
+.coach-voice-compare{margin-top:12px;border-top:1px solid #4e717e;padding:12px 0 2px}
+.coach-voice-compare strong{display:block;font-size:.95rem}
+.coach-voice-compare p{font-size:.82rem;color:#d0dce8}
+.coach-word-chips{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}
+.coach-word{border:1px solid #647c91;background:#294153;color:#e6f1fa;border-radius:9px;padding:9px;min-height:39px;font-size:.83rem}
+.coach-word.match{border-color:#4bbda4;background:#21463e}
+.coach-word.review{border-color:#dfa47e;background:#443529}
+.coach-word.extra{border-color:#b2a2d1;background:#38334d}
