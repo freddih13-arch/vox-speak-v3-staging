@@ -2,9 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
+import {SCENARIOS} from '../src/coach/scenarios.js';
 const root=new URL('../',import.meta.url);
 const text=path=>readFileSync(new URL(path,root),'utf8');
 const window={};
+vm.runInNewContext(text('src/phonetics/ipa-scenario-lexicon.js'),{window});
 vm.runInNewContext(text('src/phonetics/ipa-guide.js'),{window});
 vm.runInNewContext(text('src/data/islands-data.js'),{window});
 vm.runInNewContext(text('src/legacy/training-data.js'),{window});
@@ -33,4 +35,14 @@ test('new phonetic guidance preserves blind exercises and avoids HTML injection'
  assert.match(html,/src\/phonetics\/ipa-guide\.js/);
  assert.match(html,/id="is-speech-playback"/);
  assert.match(html,/id="pron-ipa-guide"/);
+});
+
+test('new 90-turn scenario prompts have at least 98% sourced reference IPA coverage',()=>{
+ const words=new Set(SCENARIOS.flatMap(s=>[s.q,s.followUp,s.challenge]).join(' ').toLowerCase().match(/[a-z]+(?:['’][a-z]+)*/g)||[]);
+ const missing=[...words].filter(w=>!lookup(w));
+ assert.ok(1-missing.length/words.size>=.98,'Reference IPA missing too often: '+missing.join(', '));
+ assert.equal(Object.keys(window.VoxScenarioIPA).length,245);
+ assert.match(text('src/phonetics/ipa-guide.js'),/Cómo articular/);
+ const html=text('index.html');assert.ok(html.includes('src/phonetics/ipa-scenario-lexicon.js'));
+ const sw=text('sw.js');assert.ok(sw.includes('src/phonetics/ipa-scenario-lexicon.js'));
 });
